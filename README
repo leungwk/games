@@ -1,0 +1,18 @@
+== Requirements ==
+
+Python 2.5.2, Enum package, statlib package
+
+== Running ==
+
+Execute the following after loading proj2.py
+
+## playing the game
+ra = random_agent()
+mma = minimax_agent()
+aba = alphabeta_agent()
+#ar = arena(mma,ra)
+ar = arena(aba,ra)
+ar.begin_games(1)
+
+and then watch the agents in action.
+

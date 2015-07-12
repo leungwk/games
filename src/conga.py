@@ -12,6 +12,7 @@ import datetime
 import json
 import sys
 
+from common.board import Board
 
 # import os
 DATA_DIR = 'data/'
@@ -36,7 +37,12 @@ class Cell(object):
 
 
     def __str__(self):
+        return '{}{}'.format(self.num, self.player)
+
+
+    def __repr__(self):
         return 'Cell(num={num}, player={player})'.format(num=self.num, player=repr(self.player))
+
 
 
 class Player(Enum):
@@ -73,152 +79,8 @@ class Player(Enum):
             return 'Player.invalid' # filler
 
 
-class Board(object):
-    """Define the conga board.
+_invalid_cell = Cell(num=-1, player=Player.invalid)
 
-    The board is an object/container to track and enforce legal
-    coordinates and contents. Legal moves, plays, and so on are to be
-    handled by the Game object. Assuming 2D and rectangular.
-    """
-    _invalid_cell = Cell(num=-1, player=Player.invalid)
-    _neighbour_deltas = [(dx, dy) for dx, dy in
-                         itertools.product([-1, 0, 1], [-1, 0, 1])
-                         if (dx, dy) != (0, 0)]
-
-
-    def __init__(self, nrows, ncols):
-        self._board = {}
-        for (col, row) in itertools.product(range(1, ncols +1),
-                                            range(1, nrows +1)):
-            coord = (col, row)
-            self._board[coord] = Cell(num=0, player=Player.none)
-        self.nrows = nrows
-        self.ncols = ncols
-
-
-    def __getitem__(self, coord):
-        """coord is index-1"""
-        if self.is_valid_coord(coord):
-            return self._board[coord]
-        else:
-            return self._invalid_cell
-
-
-    def __setitem__(self, coord, item):
-        if self.is_valid_coord(coord):
-            self._board[coord] = item # TODO: enforce Cell type?
-        ## invalid keys set "nowhere"
-
-
-    def __iter__(self):
-        for coord in self._board:
-            yield coord
-
-
-    def __str__(self):
-        """Print the board.
-
-        Rather than matrix order, use quadrant 1, where (1,1) is in the
-        bottom left rather than top left.
-
-        (1,4) (2,4) (3,4) (4,4)
-        (1,3) (2,3) (3,3) (4,3)
-        (1,2) (2,2) (3,2) (4,2)
-        (1,1) (2,1) (3,1) (4,1)
-        """
-        acc_tot = ''
-        for col in range(self.nrows, 0, -1):
-            acc_row = ''
-            for row in range(1, self.ncols +1):
-                coord = (row, col)
-                acc_row += str(self._board[coord].num) +str(self._board[coord].player) +' '
-            acc_tot += acc_row +'\n'
-        return acc_tot.strip()
-
-
-    # def __contains__(self, cell):
-    #     """Check if the board has the same cell contents at the cell's coord"""
-    #     # coord, _ = self._get_coord(cell)
-    #     return self[coord] == cell
-
-
-    def __eq__(self, other):
-        """Check that shape and contents are equal"""
-        if (self.nrows != other.nrows) or (self.ncols != other.ncols):
-            return False
-
-        for (col, row) in itertools.product(range(1, self.ncols +1),
-                                            range(1, self.nrows +1)):
-            coord = (row, col)
-            if self._board[coord] != other[coord]:
-                return False
-        return True
-
-
-    def __ne__(self, other):
-        return not self.__eq__(other)
-
-
-    def is_valid_coord(self, coord):
-        """Check if coord is a valid position"""
-        return coord in self._board
-
-
-    def _get_coord(self, obj):
-        """Get the coordinates either from itself or from Cell"""
-        coord, is_cell = None, None
-        try:
-            coord = obj.coord
-        except AttributeError:
-            coord = obj
-            is_cell = False
-        else:
-            is_cell = True
-        return coord, is_cell
-
-
-    # def get_neighbour_coord(self, (cx, cy)): # tuple param unpacking gone by pep 3113
-    def get_neighbours(self, coord): # TODO: like iter_items_vec, this should have coord, and items, versions
-        """Returns a list of valid neighbouring coords around coord. Ordering not guarenteed."""
-        # coord, is_cell = self._get_coord(obj)
-
-        row, col = coord
-        acc = []
-        for d_x, d_y in self._neighbour_deltas:
-            new_coord = (row +d_x, col +d_y)
-            if not self.is_valid_coord(new_coord):
-                continue
-
-            # if is_cell:
-            #     acc.append(self[new_coord])
-            # else:
-            acc.append(new_coord)
-        return acc
-
-
-    def iter_vec(self, move): # TODO: rename to match python3's dict convention
-        """Yield all cells arraying from src along direction dest"""
-        ## figure out the iteration direction
-        (src_x, src_y), (dest_x, dest_y) = move
-        delta_x, delta_y = dest_x -src_x, dest_y -src_y
-
-        cur_x, cur_y = move.src
-        while self.is_valid_coord((cur_x, cur_y)):
-            yield self[(cur_x, cur_y)]
-            cur_x += delta_x
-            cur_y += delta_y
-
-
-    def iter_items_vec(self, move):
-        """Yield all coords (keys) and cells (values) arraying from src along direction dest"""
-        (src_x, src_y), (dest_x, dest_y) = move
-        delta_x, delta_y = dest_x -src_x, dest_y -src_y
-
-        cur_x, cur_y = move.src
-        while self.is_valid_coord((cur_x, cur_y)):
-            yield (cur_x, cur_y), self[(cur_x, cur_y)]
-            cur_x += delta_x
-            cur_y += delta_y
 
 
 class Game(object):
@@ -255,7 +117,7 @@ class Conga(object): # TODO: inherit from Game
         ]
 
     def __init__(self, nrows=4, ncols=4):
-        self._board = Board(nrows, ncols)
+        self._board = Board(nrows, ncols, lambda: Cell(num=0, player=Player.none))
         self._board[(1, 4)] = Cell(num=10, player=Player.black)
         self._board[(4, 1)] = Cell(num=10, player=Player.white)
         # ## these should only be used internally for stats tracking
@@ -323,17 +185,11 @@ class Conga(object): # TODO: inherit from Game
 
         ##
         acc_mov = []
-        for coord_nei in self._board.get_neighbours(coord):
+        for coord_nei in self._board.keys_neighbours(coord):
             if self._board[coord_nei].player not in [cell.player, Player.none]:
                 continue
             acc_mov.append(coord_nei)
         return acc_mov
-
-
-    def _iter_board(self):
-        """Mimic items()"""
-        for coord in self._board:
-            yield (coord, self._board[coord])
 
 
     def get_moves(self, player):
@@ -342,7 +198,7 @@ class Conga(object): # TODO: inherit from Game
 
     def _get_player_legal_moves(self, player):
         """Yield all legal moves for player"""
-        for coord_src, cell in self._iter_board():
+        for coord_src, cell in self._board.items():
             if cell.player != player:
                 continue
             for coord_dest in self._get_legal_moves(coord_src):
@@ -358,7 +214,7 @@ class Conga(object): # TODO: inherit from Game
             cell_src = self._board[move.src]
         except AttributeError:
             import pdb; pdb.set_trace() # TODO: remove
-        for cell_cur in self._board.iter_vec(move):
+        for cell_cur in self._board.values_vec(move):
             if cell_cur.player not in [cell_src.player, Player.none]:
                 break
             yield cell_cur
@@ -438,7 +294,7 @@ class Conga(object): # TODO: inherit from Game
         lines = self._move_lines
         for move in lines:
             num_base = 0
-            for idx, cell in enumerate(self._board.iter_vec(move)):
+            for idx, cell in enumerate(self._board.values_vec(move)):
                 if cell.num == 0:
                     break
                 if idx == 0:
@@ -460,7 +316,7 @@ class Conga(object): # TODO: inherit from Game
     def area_count(self, player):
         """Counts number of cells taken up by player"""
         area_count = 0
-        for _, cell in self._iter_board():
+        for _, cell in self._board.items():
             if cell.player == player:
                 area_count += 1
         return area_count
@@ -490,7 +346,7 @@ class Conga(object): # TODO: inherit from Game
             ## cur_player is either base_player or none
 
             closed_set.add(cur_coord)
-            for neighbour_coord in self._board.get_neighbours(cur_coord):
+            for neighbour_coord in self._board.keys_neighbours(cur_coord):
                 if neighbour_coord in closed_set:
                     continue # don't revisit a coord
                 if neighbour_coord in open_set:
@@ -529,7 +385,7 @@ class Agent(object):
         ## assuming a 4x4 board
         borderness_player = borderness_opponent = 0
         concentration_player = concentration_opponent = 0
-        for coord_src, cell_src in conga._iter_board():
+        for coord_src, cell_src in conga._board.items():
             cell_player = cell_src.player
             if cell_player not in [Player.black, Player.white]:
                 continue
@@ -616,7 +472,7 @@ class Agent(object):
             num_empty = num_black = num_white = 0
             seeds = 0 # check for same number
             coord_hole = None
-            coord_cell_list = [c for c in conga._board.iter_items_vec(move)]
+            coord_cell_list = [c for c in conga._board.items_vec(move)]
             for coord, cell in coord_cell_list:
                 if cell.player == Player.none:
                     coord_hole = coord
@@ -641,7 +497,7 @@ class Agent(object):
                 if coord_hole is None:
                     return float('-inf') # because it is player's turn, the previous move was the opponent's, and the opponent's move created a line victory
                 ##
-                for coord_nei in conga._board.get_neighbours(coord_hole):
+                for coord_nei in conga._board.keys_neighbours(coord_hole):
                     ## skip those in the line
                     if coord_nei in inline_coords:
                         continue
@@ -706,7 +562,7 @@ class PlayerAgent(Agent):
                 raise se
             except:
                 continue # try again
-            if self.colour != conga._board[coord_src].player:
+            if (coord_src in conga._board) and (self.colour != conga._board[coord_src].player):
                 move = INVALID_MOVE
         return move
 

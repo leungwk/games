@@ -1,5 +1,5 @@
-from conga import Move, Cell, Board, Conga, Player, Agent, RandomAgent, AlphaBetaAgent
-
+from conga import Move, Cell, Conga, Player, Agent, RandomAgent, AlphaBetaAgent, _invalid_cell
+from common.board import Board
 
 ## TODO:
 # _get_opponent
@@ -21,57 +21,6 @@ assert cell_1 != cell_3
 #### ================================================================
 
 #### ================================================================
-#### Board
-#### ================================================================
-
-## __init__
-nrows = 5
-ncols = 3
-board = Board(nrows=nrows, ncols=ncols)
-coord = (3,2)
-assert board[coord] == Cell(num=0, player=Player.none)
-assert board[(10,10)] == Board._invalid_cell
-
-assert set([coord for coord in board]) == set([
-    (1, 2),
-    (3, 2),
-    (1, 3),
-    (3, 3),
-    (3, 1),
-    (2, 1),
-    (2, 4),
-    (1, 5),
-    (2, 3),
-    (1, 4),
-    (2, 2),
-    (2, 5),
-    (3, 4),
-    (1, 1),
-    (3, 5),
-    ])
-
-
-
-
-board[(2, 4)] = Cell(num=2, player=Player.black)
-move = Move((1, 3), (2, 4))
-res = board.iter_vec(move)
-assert list(res) == [
-    Cell(num=0, player=Player.none),
-    Cell(num=2, player=Player.black),
-    Cell(num=0, player=Player.none),
-    ]
-
-
-
-## get_neighbours
-assert set(board.get_neighbours((1,5))) == set([
-    (1,4),
-    (2,4),
-    (2,5),
-    ])
-
-#### ================================================================
 #### Conga
 #### ================================================================
 
@@ -79,7 +28,7 @@ assert set(board.get_neighbours((1,5))) == set([
 conga = Conga()
 assert conga._board[(4, 1)] == Cell(num=10, player=Player.white)
 assert conga._board[(2, 2)] == Cell(num=0, player=Player.none)
-assert conga._board[(-1, 1)] == Cell(num=-1, player=Player.invalid)
+# assert conga._board[(-1, 1)] == _invalid_cell # TODO: 
 
 
 
@@ -278,14 +227,7 @@ assert -((3) -(0))/3. == sc
 
 
 
-agent_ab.decision(conga)
-
-
-
-
-
-
-
+# agent_ab.decision(conga)
 
 
 # conga = Conga()

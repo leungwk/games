@@ -13,6 +13,10 @@ import json
 import sys
 
 from common.board import Board
+from common.state import State
+
+from search.conga import heuristic_1
+from common.agent import Agent
 
 # import os
 DATA_DIR = 'data/'
@@ -79,24 +83,31 @@ class Player(Enum):
             return 'Player.invalid' # filler
 
 
+    @staticmethod
+    def opponent(player):
+        # if player is None:
+        #     player = self.value # fake a multidispatch
+        if player == Player.black:
+            opponent = Player.white
+        elif player == Player.white:
+            opponent = Player.black
+        elif player == Player.invalid:
+            opponent = Player.invalid
+        elif player == Player.none:
+            opponent = Player.none # unsure what would happen...
+        else:
+            raise ValueError("Unknown value: {}".format(player))
+        return opponent
+
+
+    # def opponent(self):
+    #     return Player.opponent(self.value)
+
+
 _invalid_cell = Cell(num=-1, player=Player.invalid)
 
 
-
-class Game(object):
-    """abstract base class?"""
-
-    def do_move(self, move):
-        pass
-
-    def get_moves(self, player):
-        pass
-
-    def terminal(self, player):
-        pass
-
-
-class Conga(object): # TODO: inherit from Game
+class Conga(State):
     """
 
     4x4 default.
@@ -275,16 +286,19 @@ class Conga(object): # TODO: inherit from Game
         cell_src.player = Player.none
 
 
-    def _get_opponent(self, player):
-        if player == Player.black:
-            opponent = Player.white
-        elif player == Player.white:
-            opponent = Player.black
-        elif player == Player.invalid:
-            opponent = Player.invalid
-        elif player == Player.none:
-            opponent = Player.none # unsure what would happen...
-        return opponent
+    def opponent(self, player):
+        return Player.opponent(player) # TODO: replace with .turn eventually
+
+    # def _get_opponent(self, player):
+    #     if player == Player.black:
+    #         opponent = Player.white
+    #     elif player == Player.white:
+    #         opponent = Player.black
+    #     elif player == Player.invalid:
+    #         opponent = Player.invalid
+    #     elif player == Player.none:
+    #         opponent = Player.none # unsure what would happen...
+    #     return opponent
 
 
     def terminal(self, player):
@@ -306,7 +320,7 @@ class Conga(object): # TODO: inherit from Game
                 return True
 
         ## check if opponent has no more moves
-        opponent = self._get_opponent(player)
+        opponent = self.opponent(player)
 
         for _ in self.get_moves(opponent):
             return False # opponent has at least one, so not terminal
@@ -332,7 +346,7 @@ class Conga(object): # TODO: inherit from Game
             return {}
 
         base_player = cell.player
-        base_opponent = self._get_opponent(base_player)
+        base_opponent = self.opponent(base_player)
 
         open_set = set([coord]) # coords to explore
         closed_set = set() # coords previously explored
@@ -357,176 +371,6 @@ class Conga(object): # TODO: inherit from Game
                     if neighbour_coord not in tree:
                         tree[neighbour_coord] = [] # because leaves should have a node
         return dict(tree)
-
-
-class Agent(object):
-    """Base class for common properties and methods of Agents"""
-
-    def __init__(self, colour):
-        self.colour = colour
-
-
-    def decision(self, board):
-        pass
-
-
-    def _score_area_count(self, conga, player):
-        ## area count (in [1,10])
-        area_count_player = conga.area_count(player)
-        opponent = conga._get_opponent(player)
-        area_count_opponent = conga.area_count(opponent)
-        score_area_count = (area_count_player -area_count_opponent)/10.
-        return score_area_count
-
-
-    def _score_border_concentration(self, conga, player):
-        ## corner, side, center -ness
-        ## concentration of stones (separate out >= 3 and \lt 3 conditions)
-        ## assuming a 4x4 board
-        borderness_player = borderness_opponent = 0
-        concentration_player = concentration_opponent = 0
-        for coord_src, cell_src in conga._board.items():
-            cell_player = cell_src.player
-            if cell_player not in [Player.black, Player.white]:
-                continue
-            cell_opponent = conga._get_opponent(player)
-            ## border in [0,16]
-            if coord_src in [(1, 1), (1, 4), (4, 1), (4, 4)]: # corners
-                if player == cell_player:
-                    borderness_player += 2
-                else:
-                    borderness_opponent += 2
-            elif coord_src in [(2, 2), (2, 3), (3, 2), (3, 3)]: # center
-                pass
-            else: # side
-                if player == cell_player:
-                    borderness_player += 1
-                else:
-                    borderness_opponent += 1
-            ## concentration (in [0,3])
-            ## tuned when number of stones adds up to 10
-            if 4 <= cell_src.num <= 5:
-                if player == cell_player:
-                    concentration_player += 1
-                else:
-                    concentration_opponent += 1
-            elif cell_src.num >= 6:
-                if player == cell_player:
-                    concentration_player += 3
-                else:
-                    concentration_opponent += 3
-        # borderness_player /= 16.
-        # borderness_opponent /= 16.
-        score_borderness = (borderness_player -borderness_opponent)/16.
-        # concentration_player /= 3.
-        # concentration_opponent /= 3.
-        score_concentration = (concentration_player -concentration_opponent)/3.
-        return score_borderness, score_concentration
-
-
-    def heuristic(self, conga, player):
-        """Score how 'good' the current board is for player.
-
-        How much area does player take up?
-        How much area does the opponent potentially take up?
-
-        ====
-        assuming the root player was max player? (there's something strange that it doesn't account for whether player is max or min)
-
-        16 points per feature
-
-        (why input player? because search requires taking opponent's view. However, it will ignore whose /turn/ it is, as set in the Game board)
-
-        Assuming if good for player, is bad for opponent? (hence also calculate for opponent those features)
-        """
-        ## all heuristics variables should be within [-1,1] (or [0,1] if assuming the opponent provides the opposite half), and the weight will adjust this
-        ## TODO: use [-1,1] (assuming symmetric; everything is wrt to current player)
-        weight_area = 8
-        weight_ratio_avail_moves = 8 # probably somewhat correlates with area
-        weight_border = -8
-        weight_concentration = -8
-        ## shapes
-        weight_victory_hole = 32*2
-
-        ## near terminal check
-        player_legal_moves = list(conga.get_moves(player))
-        if not player_legal_moves:
-            return float('-Inf')
-
-        opponent = conga._get_opponent(player)
-        opponent_legal_moves = list(conga.get_moves(opponent))
-        if not opponent_legal_moves:
-            return float('Inf')
-
-        score_area_count = self._score_area_count(conga, player)
-
-        tot_moves = len(player_legal_moves) +len(opponent_legal_moves)
-        ratio = 1.0*len(player_legal_moves)/len(opponent_legal_moves)
-        score_ratio_avail_moves = min(1, ratio/2.) if ratio >= 1 else -min(1, 1./ratio/2.)
-
-        #### shape heuristics
-        ## "victory hole": good if player's turn (also would be caught by 1-ply lookahead)
-        ## check all directions
-        score_victory_hole = 0
-        for move in conga._move_lines: # starts at the edge, so will cover the entire line
-            num_empty = num_black = num_white = 0
-            seeds = 0 # check for same number
-            coord_hole = None
-            coord_cell_list = [c for c in conga._board.items_vec(move)]
-            for coord, cell in coord_cell_list:
-                if cell.player == Player.none:
-                    coord_hole = coord
-                    num_empty += 1
-                    if num_empty >= 2:
-                        break # no line
-                elif cell.player == Player.black:
-                    num_black += 1
-                elif cell.player == Player.white:
-                    num_white += 1
-                ## does all holes have 0 or the same number of seeds?
-                if not seeds:
-                    seeds = cell.num
-                elif seeds != cell.num:
-                    break # no line
-            else: # a line found
-                ## TODO: this doesn't make sense if the seeds >= 2, since neighbours can put in at most 1, unless it is the edge
-                ## num_empty should == 1, because if it were 0, then it should be game over, and it is supposed to break for >= 2
-                ## ... but then again, this heuristic should work on /all/ board positions
-                ## hole should be defined
-                inline_coords, _ = zip(*coord_cell_list)
-                if coord_hole is None:
-                    return float('-inf') # because it is player's turn, the previous move was the opponent's, and the opponent's move created a line victory
-                ##
-                for coord_nei in conga._board.keys_neighbours(coord_hole):
-                    ## skip those in the line
-                    if coord_nei in inline_coords:
-                        continue
-                    cell_nei = conga._board[coord_nei]
-                    if seeds != cell_nei.num:
-                        continue
-
-                    if conga._get_opponent(player) == cell_nei.player:
-                        score_victory_hole = -1 # bad for current player
-                    elif player == cell_nei.player:
-                        score_victory_hole = +1
-                    break # exit outermost loop, since done
-                ## TODO: if there are non-neighbours of the hole
-
-        score_borderness, score_concentration = self._score_border_concentration(conga, player)
-
-        term_area = weight_area * score_area_count
-        term_ratio_avail_moves = weight_ratio_avail_moves * score_ratio_avail_moves
-        ## TODO: shouldn't it be bad for a player to be too much on the border, or too concentrated?
-        term_borderness = weight_border * score_borderness
-        term_concentration = weight_concentration * score_concentration
-        term_victory_hole = weight_victory_hole * score_victory_hole
-
-        return term_area +term_ratio_avail_moves +term_borderness +term_concentration +term_victory_hole
-
-
-    def params(self):
-        """Agent specific params that affect its behaviour"""
-        return {}
 
 
 class RandomAgent(Agent):
@@ -575,6 +419,7 @@ class AlphaBetaAgent(Agent):
         for key, value in kwargs.items():
             if key == 'explore_depth':
                 self.explore_depth = value
+        self.heuristic = heuristic_1
         
 
     def decision(self, conga):
@@ -616,7 +461,7 @@ class AlphaBetaAgent(Agent):
             new_conga.do_move(move)
             # self.explore_count += 1
 
-            opponent = conga._get_opponent(player)
+            opponent = conga.opponent(player)
             ret_val, ret_move = self.alphabeta(
                 new_conga, alpha, beta, depth -1, opponent, "max" if mm == "min" else "min")
             if mm == "max":

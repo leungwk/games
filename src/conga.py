@@ -16,6 +16,7 @@ from common.board import Board
 from common.state import State
 
 from search.conga import heuristic_1
+from search.alphabeta import alphabeta
 from common.agent import Agent
 
 # import os
@@ -420,6 +421,7 @@ class AlphaBetaAgent(Agent):
             if key == 'explore_depth':
                 self.explore_depth = value
         self.heuristic = heuristic_1
+        self.alphabeta = alphabeta
         
 
     def decision(self, conga):
@@ -441,51 +443,12 @@ class AlphaBetaAgent(Agent):
         posinf = float('Inf')
         explore_depth = self.explore_depth
         ret_val, ret_move = self.alphabeta(
-            conga, neginf, posinf, explore_depth, self.colour, "max")
+            conga, neginf, posinf, explore_depth, self.colour, "max", self.heuristic, INVALID_MOVE)
         if ret_move == INVALID_MOVE:
             ## because the search starts with "max", it means all eventual moves will lead to a terminal state (-inf), because "min" will choose only victory states
             ## it might also return something if using ">=" rather than ">" (see the code), but this will create needless moves
             return random.sample([m for m in conga.get_moves(self.colour)], 1)[0] # at least return something rather than invalid
         return ret_move
-
-
-    def alphabeta(self, conga, alpha, beta, depth, player, mm):
-        if conga.terminal(player) or \
-           depth == 0:
-            return (self.heuristic(conga, player), INVALID_MOVE) # invalid move
-
-        curr_move = INVALID_MOVE
-        moves = conga.get_moves(player)
-        for move in moves:
-            new_conga = copy.deepcopy(conga)
-            new_conga.do_move(move)
-            # self.explore_count += 1
-
-            opponent = conga.opponent(player)
-            ret_val, ret_move = self.alphabeta(
-                new_conga, alpha, beta, depth -1, opponent, "max" if mm == "min" else "min")
-            if mm == "max":
-                if ret_val > alpha: # '>=' causes wrong move to be selected (and it should update only on improvements)
-                    curr_move = move
-                alpha = max(alpha, ret_val)
-                if alpha >= beta: # value of adversery has now been exceeded, so no need to search further
-                    # self.prune_count += len(moves) -moves.index(move)
-                    return (beta, curr_move) # pruning
-#                alpha = max(alpha,ret_val)
-
-            else: # is "min"
-                if ret_val < beta: # '<=' causes wrong move to be selected
-                    curr_move = move
-                beta = min(beta, ret_val)
-                if beta <= alpha:
-                    # self.prune_count += len(moves) -moves.index(move)
-                    return (alpha, curr_move) # pruning
-#                beta = min(beta,ret_val)
-
-        if mm == "max":
-            return (alpha, curr_move)
-        else: # is "min"
-            return (beta, curr_move)
 
 
     def params(self):

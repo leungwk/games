@@ -9,7 +9,6 @@ import random
 import copy
 import math
 import datetime
-import json
 import sys
 
 from common.board import Board
@@ -18,11 +17,10 @@ from common.state import State
 from search.conga import heuristic_1
 from search.alphabeta import alphabeta
 from common.agent import Agent
+from common.arena import Arena
 
-# import os
 DATA_DIR = 'data/'
 
-# Cell = namedtuple('Cell', ['num', 'player', 'coord'])
 Move = namedtuple('Move', ['src', 'dest']) # should be a class to enforce that fields should be a 2-tuples
 INVALID_MOVE = Move(None, None)
 
@@ -86,8 +84,6 @@ class Player(Enum):
 
     @staticmethod
     def opponent(player):
-        # if player is None:
-        #     player = self.value # fake a multidispatch
         if player == Player.black:
             opponent = Player.white
         elif player == Player.white:
@@ -99,10 +95,6 @@ class Player(Enum):
         else:
             raise ValueError("Unknown value: {}".format(player))
         return opponent
-
-
-    # def opponent(self):
-    #     return Player.opponent(self.value)
 
 
 _invalid_cell = Cell(num=-1, player=Player.invalid)
@@ -132,6 +124,7 @@ class Conga(State):
         self._board = Board(nrows, ncols, lambda: Cell(num=0, player=Player.none))
         self._board[(1, 4)] = Cell(num=10, player=Player.black)
         self._board[(4, 1)] = Cell(num=10, player=Player.white)
+        self.turn = Player.black
         # ## these should only be used internally for stats tracking
         # self.player_prev = Player.white # even though the beginning, pretend it was white
         # self.player_curr = Player.black
@@ -222,10 +215,7 @@ class Conga(State):
         if not self.is_legal_move(move):
             return
 
-        try:
-            cell_src = self._board[move.src]
-        except AttributeError:
-            import pdb; pdb.set_trace() # TODO: remove
+        cell_src = self._board[move.src]
         for cell_cur in self._board.values_vec(move):
             if cell_cur.player not in [cell_src.player, Player.none]:
                 break
@@ -235,11 +225,6 @@ class Conga(State):
     def do_move(self, move):
         """is destructive of board and player"""
         self.sow_seeds(move)
-        ## swap players
-        # self.move_hist.append( (self.player_curr, move) )
-        # tmp_prev = self.player_prev
-        # self.player_prev = self.player_curr
-        # self.player_curr = tmp_prev
 
 
     def do_moves(self, moves):
@@ -256,14 +241,6 @@ class Conga(State):
 
         ## first hole
         _iter = self._iter_line(move)
-        ## won't work because it needs to read the generator?
-        # next(_iter) # skip over the src # wrong
-        # cell_src = self._board[coord_src]
-        # rem_seeds = cell_src.num
-        # player_src = cell_src.player
-        # self._board[coord_src].num = 0
-        # self._board[coord_src].player = Player.none
-        # cell_cur = cell_src
         ## sow
         for idx_seed, cell_cur in enumerate(_iter):
             if idx_seed == 0:
@@ -285,21 +262,11 @@ class Conga(State):
         ## clean up
         cell_src.num = 0
         cell_src.player = Player.none
+        self.turn = self.opponent(self.turn)
 
 
     def opponent(self, player):
         return Player.opponent(player) # TODO: replace with .turn eventually
-
-    # def _get_opponent(self, player):
-    #     if player == Player.black:
-    #         opponent = Player.white
-    #     elif player == Player.white:
-    #         opponent = Player.black
-    #     elif player == Player.invalid:
-    #         opponent = Player.invalid
-    #     elif player == Player.none:
-    #         opponent = Player.none # unsure what would happen...
-    #     return opponent
 
 
     def terminal(self, player):
@@ -457,88 +424,6 @@ class AlphaBetaAgent(Agent):
             }
 
 
-class Arena(object):
-    """"""
-    def __init__(self, agent_black, agent_white, **kwargs):
-        self.conga = Conga()
-        self.agent_black = agent_black(Player.black)
-        # self.agent_white = AlphaBetaAgent(Player.white)
-        self.agent_white = agent_white(Player.white)
-        self.move_hist = []
-        ##
-        self.seed = None
-        # self.verbose = False
-        for key, value in kwargs.items():
-            if key == 'seed':
-                self.seed = value
-            # elif key == 'verbose':
-            #     self.verbose = value
-
-
-    def play(self):
-        print("Game start: ")
-        print(self.conga._board)
-        print()
-
-        random.seed(self.seed)
-
-        self.start_time_game = int(datetime.datetime.now().strftime('%s'))
-        self.winner = Player.invalid
-
-        while True:
-            ## black
-            if self.conga.terminal(self.agent_black.colour):
-                winner = self.agent_black.colour
-                break
-            move = self.agent_black.decision(self.conga)
-            self.conga.do_move(move)
-            self.move_hist.append((self.agent_black.colour, move))
-            print(self.conga._board)
-            print()
-            if self.conga.terminal(self.agent_black.colour):
-                winner = self.agent_black.colour
-                break
-
-            ## white
-            if self.conga.terminal(self.agent_white.colour):
-                winner = self.agent_white.colour
-                break
-            move = self.agent_white.decision(self.conga)
-            self.conga.do_move(move)
-            self.move_hist.append((self.agent_white.colour, move))
-            print(self.conga._board)
-            print()
-            if self.conga.terminal(self.agent_white.colour):
-                winner = self.agent_white.colour
-                break
-
-        self.end_time_game = int(datetime.datetime.now().strftime('%s'))
-        self.winner = winner
-        print('winner: {}'.format(winner))
-
-        ## collect and output stats
-        self.num_moves = len(self.move_hist)
-        ## params
-
-
-    def output_results(self, path_output):
-        out_dict = {
-            'start_time_game': self.start_time_game,
-            'end_time_game': self.end_time_game,
-            ## TODO: use custom name for the case of the same agent
-            'black': self.agent_black.__class__.__name__,
-            'white': self.agent_white.__class__.__name__,
-            'params_black': self.agent_black.params(),
-            'params_white': self.agent_white.params(),
-            'winner': str(self.winner),
-            'num_moves': self.num_moves,
-            'move_hist': [(str(pla), mov.src, mov.dest) for pla, mov in self.move_hist],
-            'seed': self.seed,
-            }
-        with open(path_output, 'w') as pile:
-            json.dump(out_dict, pile)
-
-
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser(description='')
@@ -559,7 +444,7 @@ if __name__ == '__main__':
     for _ in range(n_iter):
         black = eval(args.black)
         white = eval(args.white)
-        arena = Arena(black, white, **kwargs)
+        arena = Arena(Conga(), black(Player.black), white(Player.white), **kwargs)
         arena.play()
         if args.path_output is None:
             path_output = DATA_DIR +'out/conga/arena.' +datetime.datetime.now().strftime('%Y-%m-%dT%H%M%S')

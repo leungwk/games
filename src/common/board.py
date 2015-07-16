@@ -166,3 +166,47 @@ class Board(object):
         """Yield all cells (values) arraying from src along direction dest"""
         for key in self.keys_vec(move):
             yield self[key]
+
+
+    ## for rith.py
+    def keys_fan(self, coord_src, deltas):
+        """Yield all coords, by each deltas, always starting from src. Skip where OOB"""
+        for delta_x, delta_y in deltas:
+            cur_x, cur_y = coord_src
+            coord = (cur_x +delta_x, cur_y +delta_y)
+            if not self.is_valid_coord(coord):
+                continue
+            yield coord
+
+
+    def items_fan(self, coord_src, deltas):
+        for key in self.keys_fan(coord_src, deltas):
+            yield key, self[key]
+
+
+    def values_fan(self, coord_src, deltas):
+        for key in self.keys_fan(coord_src, deltas):
+            yield self[key]
+
+
+    def keys_delta_xy(self, coord_src, delta_xy):
+        """Yield all coords, starting from src, by successive delta, and stop when OOB"""
+        cur_x, cur_y = coord_src
+        delta_x, delta_y = delta_xy
+
+        coord = (cur_x, cur_y)
+        while self.is_valid_coord(coord):
+            yield coord
+            cur_x += delta_x
+            cur_y += delta_y
+            coord = (cur_x, cur_y)
+
+
+    def items_delta_xy(self, coord_src, delta_xy):
+        for key in self.keys_delta_xy(coord_src, delta_xy):
+            yield key, self._board[key]
+
+
+    def values_delta_xy(self, coord_src, delta_xy):
+        for key in self.keys_delta_xy(coord_src, delta_xy):
+            yield self._board[key]

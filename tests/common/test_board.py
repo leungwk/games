@@ -82,3 +82,31 @@ assert set(board.keys_neighbours((1, 5))) == set([
     (2, 4),
     (2, 5),
     ])
+
+
+## iteration, fan
+assert tuple(board.keys_fan((2, 2), [
+    (-1, 0),
+    (-1, +1),
+    (0, +1),
+    (+1, +1),
+    (+1, 0),
+    (+2, 0), # will result in invalid location
+    (+1, -1),
+    ])) == (
+        (1, 2),
+        (1, 3),
+        (2, 3),
+        (3, 3),
+        (3, 2),
+
+        (3, 1),
+        )
+
+
+## iteration, delta_xy
+assert tuple(board.keys_delta_xy((1, 1), (+1, +1))) == (
+        (1, 1), # include starting point
+        (2, 2),
+        (3, 3),
+        )

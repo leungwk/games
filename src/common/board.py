@@ -15,7 +15,7 @@ class Board(object):
                          if (dx, dy) != (0, 0)]
 
 
-    def __init__(self, nrows, ncols, constructor):
+    def __init__(self, nrows, ncols, constructor, **kwargs):
         self._board = {}
         for (col, row) in itertools.product(range(1, ncols +1),
                                             range(1, nrows +1)):
@@ -23,6 +23,12 @@ class Board(object):
             self._board[coord] = constructor()
         self.nrows = nrows
         self.ncols = ncols
+        # for key, value in kwargs.items():
+        #     ## if defined, all invalid inputs return value rather than error
+        #     if key == 'default_cell':
+        #         self.default_cell = value
+
+        # self._invalid_cell = invalid_cell # "0" # TODO: make a class variable
 
 
     def __getitem__(self, coord):
@@ -110,8 +116,13 @@ class Board(object):
             yield coord, self[coord]
 
 
-    def keys_neighbours(self, coord): # TODO: like items_vec, this should have coord, and items, versions        
-        """Returns a list of valid neighbouring coords around coord. Ordering not guarenteed."""
+    def values(self):
+        for coord in self:
+            yield self[coord]
+
+
+    def keys_neighbours(self, coord):
+        """Returns a list of valid neighbouring coords around coord. Ordering not guarenteed. Skip where OOB."""
         row, col = coord
         for d_x, d_y in self._neighbour_deltas:
             new_coord = (row +d_x, col +d_y)
@@ -120,8 +131,20 @@ class Board(object):
             yield new_coord
 
 
+    def items_neighbours(self, coord):
+        """Returns a list of valid neighbouring coords and cells around coord. Ordering not guarenteed."""
+        for key in self.keys_neighbours(coord):
+            yield key, self[key]
+
+
+    def values_neighbours(self, coord):
+        """Returns a list of valid neighbouring coords and cells around coord. Ordering not guarenteed."""
+        for key in self.keys_neighbours(coord):
+            yield self[key]
+
+
     def keys_vec(self, move):
-        """Yield all cells arraying from src along direction dest"""
+        """Yield all cells arraying from src along direction dest, and stop when OOB"""
         ## figure out the iteration direction
         (src_x, src_y), (dest_x, dest_y) = move
         delta_x, delta_y = dest_x -src_x, dest_y -src_y

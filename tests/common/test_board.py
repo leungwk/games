@@ -29,10 +29,10 @@ EMPTY_CELL = Cell(num=0, player=None)
 nrows = 5
 ncols = 3
 board = Board(nrows=nrows, ncols=ncols, constructor=lambda: EMPTY_CELL)
-coord = (3,2)
+coord = (3, 2)
 assert board[coord] == EMPTY_CELL
 try:
-    board[(10,10)]
+    board[(10, 10)]
 except KeyError:
     assert True
 else:
@@ -41,7 +41,7 @@ else:
 ## __eq__
 board_2 = copy.deepcopy(board)
 assert board == board_2
-board_2[(3,2)] = Cell(num=1, player='W')
+board_2[(3, 2)] = Cell(num=1, player='W')
 assert board != board_2
 
 
@@ -75,9 +75,10 @@ assert list(res) == [
     EMPTY_CELL,
     ]
 
+
 ## iteration, neighbours
-assert set(board.keys_neighbours((1,5))) == set([
-    (1,4),
-    (2,4),
-    (2,5),
+assert set(board.keys_neighbours((1, 5))) == set([
+    (1, 4),
+    (2, 4),
+    (2, 5),
     ])

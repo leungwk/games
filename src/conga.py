@@ -19,6 +19,9 @@ from search.alphabeta import alphabeta
 from common.agent import Agent
 from common.arena import Arena
 
+from common.agent import RandomAgent
+from search.search import one_ply_lookahead_terminal
+
 DATA_DIR = 'data/'
 
 Move = namedtuple('Move', ['src', 'dest']) # should be a class to enforce that fields should be a 2-tuples
@@ -45,7 +48,6 @@ class Cell(object):
 
     def __repr__(self):
         return 'Cell(num={num}, player={player})'.format(num=self.num, player=repr(self.player))
-
 
 
 class Player(Enum):
@@ -101,10 +103,9 @@ _invalid_cell = Cell(num=-1, player=Player.invalid)
 
 
 class Conga(State):
-    """
+    """Define the game logic and state .
 
-    4x4 default.
-    Black moves first.
+    4x4 default. Black moves first.
     """
     ## do not modify
     _move_lines = [
@@ -125,18 +126,10 @@ class Conga(State):
         self._board[(1, 4)] = Cell(num=10, player=Player.black)
         self._board[(4, 1)] = Cell(num=10, player=Player.white)
         self.turn = Player.black
-        # ## these should only be used internally for stats tracking
-        # self.player_prev = Player.white # even though the beginning, pretend it was white
-        # self.player_curr = Player.black
-        # ## each cell contains the number of seeds and player, and "0" if nothing
-        # ## for stats
-        # self.move_hist = [] # (player,move); measured from starting position
 
 
     def is_legal_move(self, move):
         """Check whether the seeds in src can be moved to the coord of dest"""
-        # if type(move) != type(Move):
-        #     raise TypeError('{} is not of type Move'.format(move))
         coord_src, coord_dest = move
         if not self._board.is_valid_coord(coord_src) or \
           not self._board.is_valid_coord(coord_dest):
@@ -172,10 +165,9 @@ class Conga(State):
         """Get player's legal moves starting from coord.
 
         A move is legal if, for the player at coord, the destination is
-        on the board, and is empty or has a seed of the same player as
-        player.
+        on the board, and is empty or has a seed of the same colour as player.
 
-        Not necessarily ordered.
+        Output not necessarily ordered.
         """
         if not self._board.is_valid_coord(coord):
             return []
@@ -253,7 +245,6 @@ class Conga(State):
             cell_cur.num += avail_seeds
             rem_seeds -= avail_seeds
             cell_cur.player = player_src
-            # cell_prev = cell_cur
             if rem_seeds <= 0:
                 break
         else:
@@ -266,11 +257,12 @@ class Conga(State):
 
 
     def opponent(self, player):
-        return Player.opponent(player) # TODO: replace with .turn eventually
+        return Player.opponent(player)
 
 
     def terminal(self, player):
         """Check if a terminal state for player. ie. did player win?"""
+        ## not using self.turn because cannot assume alternating turns generally
 
         ## horizontal, vertical, or diagonal
         lines = self._move_lines
@@ -296,7 +288,7 @@ class Conga(State):
 
 
     def area_count(self, player):
-        """Counts number of cells taken up by player"""
+        """Count the number of cells taken up by player"""
         area_count = 0
         for _, cell in self._board.items():
             if cell.player == player:
@@ -341,20 +333,17 @@ class Conga(State):
         return dict(tree)
 
 
-class RandomAgent(Agent):
-    """"""
-    def decision(self, conga):
-        moves = list(conga.get_moves(self.colour))
-        if not moves:
-            return INVALID_MOVE # TODO: error?
-        return random.sample(moves, 1)[0]
-
-
 class PlayerAgent(Agent):
-    """"""
+    """For user input"""
+    def __init__(self, colour, **kwargs):
+        super().__init__(colour)
+        for key, value in kwargs.items():
+            if key =='invalid_move':
+                self.invalid_move = value
+
+
     def decision(self, conga):
-        ## assume for now that user will input valid
-        move = INVALID_MOVE
+        move = self.invalid_move
         while not conga.is_legal_move(move):
             try:
                 src_in = input('src move (x,y): ')
@@ -375,7 +364,7 @@ class PlayerAgent(Agent):
             except:
                 continue # try again
             if (coord_src in conga._board) and (self.colour != conga._board[coord_src].player):
-                move = INVALID_MOVE
+                move = self.invalid_move
         return move
 
 
@@ -384,34 +373,32 @@ class AlphaBetaAgent(Agent):
     def __init__(self, colour, **kwargs):
         super().__init__(colour)
         self.explore_depth = 4
+        self.seed = None
         for key, value in kwargs.items():
             if key == 'explore_depth':
                 self.explore_depth = value
+            elif key == 'invalid_move':
+                self.invalid_move = value
+            elif key == 'seed':
+                self.seed = value
         self.heuristic = heuristic_1
         self.alphabeta = alphabeta
         
 
     def decision(self, conga):
-        """"""
-        ## TODO: refactor out (put into Agent)
-        ## 1-ply lookahead (the closest to being "obvious", or "common sense")
-        ## also skips the costlier alphabeta()
-        moves = conga.get_moves(self.colour)
-        for move in moves:
-            new_conga = copy.deepcopy(conga)
-            new_conga.do_move(move)
-            if self.heuristic(new_conga, self.colour) == float('Inf'): # ie. is winning state
-                return move
-            if new_conga.terminal(self.colour):
-                return move
+        """Do a one-ply lookahead before alpha-beta proper"""
+        ## skips the costlier alphabeta() if successful, but a drag if not
+        move_1ply = one_ply_lookahead_terminal(conga, self.colour, self.heuristic)
+        if move_1ply is not None:
+            return move_1ply
 
         ## alphabeta proper
         neginf = float('-Inf')
         posinf = float('Inf')
         explore_depth = self.explore_depth
         ret_val, ret_move = self.alphabeta(
-            conga, neginf, posinf, explore_depth, self.colour, "max", self.heuristic, INVALID_MOVE)
-        if ret_move == INVALID_MOVE:
+            conga, neginf, posinf, explore_depth, self.colour, "max", self.heuristic, self.invalid_move)
+        if ret_move == self.invalid_move:
             ## because the search starts with "max", it means all eventual moves will lead to a terminal state (-inf), because "min" will choose only victory states
             ## it might also return something if using ">=" rather than ">" (see the code), but this will create needless moves
             return random.sample([m for m in conga.get_moves(self.colour)], 1)[0] # at least return something rather than invalid
@@ -421,6 +408,8 @@ class AlphaBetaAgent(Agent):
     def params(self):
         return {
             'explore_depth': self.explore_depth,
+            'heuristic': self.heuristic.__name__,
+            'seed': self.seed,
             }
 
 
@@ -428,7 +417,7 @@ if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser(description='')
     parser.add_argument('--seed', type=int, default=None)
-    parser.add_argument('--path-output', type=str, default=None) # `date +%Y-%m-%dT%H%M%S`
+    parser.add_argument('--path-output', type=str, default=None)
     parser.add_argument('--pylab', default='') # remove from python-mode arguments
     parser.add_argument('--verbose', type=bool, default=True)
     parser.add_argument('--black', type=str, default='AlphaBetaAgent')
@@ -437,14 +426,18 @@ if __name__ == '__main__':
 
     kwargs = {
         'seed': args.seed,
-        # 'verbose': args.verbose,
+        'verbose': args.verbose,
         }
 
     n_iter = 100
     for _ in range(n_iter):
         black = eval(args.black)
         white = eval(args.white)
-        arena = Arena(Conga(), black(Player.black), white(Player.white), **kwargs)
+        arena = Arena(
+            Conga(),
+            black(Player.black, invalid_move=INVALID_MOVE, seed=args.seed),
+            white(Player.white, invalid_move=INVALID_MOVE, seed=args.seed),
+            **kwargs)
         arena.play()
         if args.path_output is None:
             path_output = DATA_DIR +'out/conga/arena.' +datetime.datetime.now().strftime('%Y-%m-%dT%H%M%S')

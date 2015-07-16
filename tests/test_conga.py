@@ -1,10 +1,6 @@
 from conga import Move, Cell, Conga, Player, Agent, RandomAgent, AlphaBetaAgent, _invalid_cell
 from common.board import Board
 
-## TODO:
-# alphabeta
-
-
 #### ================================================================
 #### Cell
 #### ================================================================
@@ -12,8 +8,9 @@ coord = (3,2)
 cell_1 = Cell(num=0, player=Player.none)
 cell_2 = Cell(num=0, player=Player.none)
 assert cell_1 == cell_2
-cell_3 = Cell(num=0, player=Player.white)
+cell_3 = Cell(num=1, player=Player.white)
 assert cell_1 != cell_3
+assert str(cell_3) == '1W'
 
 #### ================================================================
 #### Player
@@ -27,48 +24,44 @@ assert cell_1 != cell_3
 conga = Conga()
 assert conga._board[(4, 1)] == Cell(num=10, player=Player.white)
 assert conga._board[(2, 2)] == Cell(num=0, player=Player.none)
-# assert conga._board[(-1, 1)] == _invalid_cell # TODO: 
 
 
+## is_legal_move
+assert conga.is_legal_move(Move((1, 4), (1, 3)))
+assert not conga.is_legal_move(Move((1, 4), (2, 2))) # not adjacent
+assert not conga.is_legal_move(Move(None, (2, 2)))
 
-# cell = conga._board[(1, 4)]
-# TODO: add cases for invalid items
+
+## _get_legal_moves
 coord = (1, 4)
 assert set(conga._get_legal_moves(coord)) == set([(1, 3), (2, 3), (2, 4)])
 assert not set(conga._get_legal_moves(coord)) == set([(1, 3), (2, 4)])
+assert set(conga._get_legal_moves((None, None))) == set([])
 
 
-## get_player_legal_moves
-## _iter_board
-assert set(conga._get_player_legal_moves(Player.black)) == set([
+
+## get_moves / get_player_legal_moves
+assert set(conga.get_moves(Player.black)) == set([
     ((1, 4), (1, 3)),
     ((1, 4), (2, 3)),
     ((1, 4), (2, 4))
     ])
+assert set(conga.get_moves(Player.invalid)) == set([])
 
 
-
-assert conga.is_legal_move(Move((1, 4), (1, 3)))
-assert not conga.is_legal_move(Move((1, 4), (2, 2)))
-
-# ## test the method, even though cell_2 is not a current Cell in the Board
-# cell_2 = Cell(num=10, player=Player.black)
-# assert not conga.is_legal_move(coord, cell_2)
-
-
-
-## test _iter_line
+## _iter_line
 move = Move((1, 4), (2, 4))
-conga._iter_line(move) == [
+for lhs, rhs in zip(conga._iter_line(move), (
     Cell(num=10, player=Player.black),
     Cell(num=0, player=Player.none),
     Cell(num=0, player=Player.none),
     Cell(num=0, player=Player.none),
-    ]
+    )):
+    assert lhs == rhs
+assert set(conga._iter_line(Move(None, (2, 2)))) == set([])
 
 
-
-## test move (ie. sow_seeds)
+## do_move / sow_seeds
 import copy
 conga_base = copy.deepcopy(conga)
 conga.do_move(Move((1, 4), (2, 4))) # LR
@@ -106,17 +99,11 @@ conga_base._board[(4, 2)] = Cell(num=1, player=Player.white)
 conga_base._board[(4, 3)] = Cell(num=9, player=Player.white)
 assert conga_base._board == conga._board
 
+## area_count
 assert 3 == conga.area_count(Player.black)
 assert 2 == conga.area_count(Player.white)
 
 
-
-# conga_base = Conga()
-# assert conga_base.player_curr == Player.black
-# conga_base.do_move(Move((1, 4), (1, 3))) # down
-# assert conga_base.player_curr == Player.white
-# conga_base.do_move(Move((4, 1), (3, 1)))
-# conga_base.do_move(Move((1, 2), (1, 1)))
 
 
 ### terminal_state
@@ -154,7 +141,9 @@ assert conga.terminal(Player.black)
 assert not conga.terminal(Player.white)
 assert len(list(conga.get_moves(Player.white))) == 0
 
-## spanning tree
+
+
+## spanning_tree
 conga = Conga()
 conga._board[(1, 4)] = Cell(num=0, player=Player.none)
 conga._board[(4, 1)] = Cell(num=0, player=Player.none)
@@ -185,15 +174,3 @@ conga._board[(2, 3)] = Cell(num=1, player=Player.white)
 conga._board[(3, 3)] = Cell(num=1, player=Player.white)
 conga._board[(4, 3)] = Cell(num=1, player=Player.white)
 conga._board[(3, 4)] = Cell(num=1, player=Player.white)
-
-
-
-
-# TODO: tests of Agent, Arena
-
-# agent_ab.decision(conga)
-
-
-# conga = Conga()
-# agent_ab = AlphaBetaAgent(Player.black)
-# agent_ab.decision(conga)

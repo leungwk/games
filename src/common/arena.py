@@ -12,7 +12,7 @@ class Arena(object):
         self.move_hist = []
         ##
         self.seed = None
-        # self.verbose = False
+        self.verbose = False
         for key, value in kwargs.items():
             if key == 'seed':
                 self.seed = value
@@ -21,10 +21,11 @@ class Arena(object):
 
 
     def play(self):
-        print("Game start: ")
-        print(self.state._board)
-        print('Turn: {}'.format(self.state.turn))
-        print()
+        if self.verbose:
+            print("Game start: ")
+            print(self.state._board)
+            print('Turn: {}'.format(self.state.turn))
+            print()
 
         random.seed(self.seed)
 
@@ -41,17 +42,20 @@ class Arena(object):
             ## tracking
             self.move_hist.append((agent_cur.colour, move))
             ## display
-            print(self.state._board)
-            print('turn: {}'.format(self.state.turn))
-            print()
+            if self.verbose:
+                print(self.state._board)
+                print('turn: {}'.format(self.state.turn))
+                print()
 
             if self.state.terminal(agent_cur.colour): # presumably one cannot win the game just by starting, hence no check before the first move
+                ## do not look at .turn, because do_move might or might not automatically update .turn
                 winner = agent_cur.colour
                 break
 
         self.game_end_time = int(datetime.datetime.now().strftime('%s'))
         self.winner = winner
-        print('winner: {}'.format(winner))
+        if self.verbose:
+            print('winner: {}'.format(winner))
 
 
     def output_results(self, path_output):

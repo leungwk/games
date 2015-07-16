@@ -1,7 +1,7 @@
 import random
 
 class Agent(object):
-    """Base class for common properties and methods of Agents"""
+    """Base class for common properties and methods of an Agent"""
 
     def __init__(self, colour, **kwargs):
         self.colour = colour
@@ -12,12 +12,15 @@ class Agent(object):
 
 
     def params(self):
-        """Agent specific params that affect its behaviour"""
+        """Agent specific params that change its behaviour"""
         return {}
 
 
 class RandomAgent(Agent):
-    """"""
+    """Randomly decide upon one feasible move.
+
+    Intended as a baseline to compare against other AI.
+    """
     def __init__(self, colour, **kwargs):
         super().__init__(colour)
         for key, value in kwargs.items():

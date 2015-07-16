@@ -1,5 +1,5 @@
 """
-Define the Conga game objects, agents, and logic.
+Define the Conga game objects, agents, logic, and state.
 """
 
 from collections import namedtuple, defaultdict
@@ -21,6 +21,8 @@ from common.arena import Arena
 
 from common.agent import RandomAgent
 from search.search import one_ply_lookahead_terminal
+
+from search.mcts import UCTNode, MonteCarloTreeSearch
 
 DATA_DIR = 'data/'
 
@@ -103,7 +105,7 @@ _invalid_cell = Cell(num=-1, player=Player.invalid)
 
 
 class Conga(State):
-    """Define the game logic and state .
+    """Define the game logic and state.
 
     4x4 default. Black moves first.
     """
@@ -334,7 +336,6 @@ class Conga(State):
 
 
 class PlayerAgent(Agent):
-    """For user input"""
     def __init__(self, colour, **kwargs):
         super().__init__(colour)
         for key, value in kwargs.items():
@@ -369,7 +370,6 @@ class PlayerAgent(Agent):
 
 
 class AlphaBetaAgent(Agent):
-    """\alpha-\beta search is minimax with pruning, a kind of branch and bound. 2 player version"""
     def __init__(self, colour, **kwargs):
         super().__init__(colour)
         self.explore_depth = 4
@@ -413,15 +413,50 @@ class AlphaBetaAgent(Agent):
             }
 
 
+class MonteCarloTreeSearchAgent(Agent):
+    """An aheuristic and asymmetric approximation to minimax. 2 player version"""
+    def __init__(self, colour, **kwargs):
+        super().__init__(colour)
+        self.n_iter = int(1e3)
+        self.hold_tree = False
+        for key, value in kwargs.items():
+            if key == 'invalid_move':
+                self.invalid_move = value
+            elif key == 'n_iter':
+                self.n_iter = value
+            elif key == 'hold_tree':
+                self.hold_tree = value
+        self.search = MonteCarloTreeSearch(self.n_iter)
+
+
+    def decision(self, root_state):
+        root_node = UCTNode(parent=None, state=root_state, move=self.invalid_move, player=self.colour)
+
+        node = root_node
+        for _ in range(self.n_iter):
+            ## "non-terminal" means there is at least 1 move for node.player, ...
+            new_node = self.search.tree_policy(node)
+            delta = self.search.default_policy(new_node)
+            self.search.backup(new_node, delta)
+        if self.hold_tree:
+            self.root_node = root_node # hold onto the tree (for testing only)
+        return self.search.best_child(root_node, 0).move
+
+
+    def params(self):
+        return {'n_iter': self.n_iter}
+
+
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser(description='')
     parser.add_argument('--seed', type=int, default=None)
     parser.add_argument('--path-output', type=str, default=None)
     parser.add_argument('--pylab', default='') # remove from python-mode arguments
-    parser.add_argument('--verbose', type=bool, default=True)
+    parser.add_argument('--verbose', dest='verbose', action='store_true')
     parser.add_argument('--black', type=str, default='AlphaBetaAgent')
     parser.add_argument('--white', type=str, default='PlayerAgent')
+    parser.set_defaults(verbose=False)
     args = parser.parse_args()
 
     kwargs = {

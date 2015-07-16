@@ -16,7 +16,7 @@ def _score_border_concentration(conga, player):
     concentration_player = concentration_opponent = 0
     for coord_src, cell_src in conga._board.items():
         cell_player = cell_src.player
-        if cell_player not in [type(player).black, type(player).white]:
+        if cell_player not in [type(player).black, type(player).white]: # using type() seems ugly ...
             continue
         cell_opponent = conga.opponent(player)
         ## border in [0,16]

@@ -3,7 +3,7 @@ import datetime
 import json
 
 class Arena(object):
-    """"""
+    """Plays two agents against each other, and tracks the game stats"""
     def __init__(self, state, agent_first, agent_second, **kwargs):
         ## these need to have already been constructed
         self.state = state

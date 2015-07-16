@@ -1,26 +1,44 @@
 import copy
 
-def alphabeta(conga, alpha, beta, depth, player, mm, heuristic, invalid_move):
-    if conga.terminal(player) or \
+def alphabeta(state, alpha, beta, depth, player, mm, heuristic, invalid_move):
+    """\alpha-\beta search is minimax with pruning, a kind of branch and bound. 2 player version.
+
+
+    Explanation of the pruning:
+
+    max        (-inf)         (6)         (6)                (6)
+               /              /           /  .              /   \
+    min       .              /           /    (inf)        /     (5)
+             . .     ==>    / \  ==>    / \    .   ==>    / \    /\
+            .   .          /   \       /      . .        /      /  \
+           .   . .        /   / \     /      .   .      /      /    \
+    ...  (6)            (6)         (6)     (5)       (6)     (5)
+
+    If max=6 (which was propagated from a leaf), then if player Min sees
+    5, it would only accept any unexplored moves who values are 5 or
+    lower. But because Max will choose 6, and Min will not choose
+    anything lower than 5, there are no possible states that would
+    change Max's decision given that Min would choose 5 or lower. Hence,
+    the potential search tree for Min at 5 may be pruned.
+    """
+    if state.terminal(player) or \
        depth == 0:
-        return (heuristic(conga, player), invalid_move) # invalid move
+        return (heuristic(state, player), invalid_move) # invalid move
 
     curr_move = invalid_move
-    moves = conga.get_moves(player)
+    moves = state.get_moves(player)
     for move in moves:
-        new_conga = copy.deepcopy(conga)
-        new_conga.do_move(move)
-        # self.explore_count += 1
+        new_state = copy.deepcopy(state)
+        new_state.do_move(move)
 
-        opponent = conga.opponent(player)
+        opponent = state.opponent(player)
         ret_val, ret_move = alphabeta(
-            new_conga, alpha, beta, depth -1, opponent, "max" if mm == "min" else "min", heuristic, invalid_move)
+            new_state, alpha, beta, depth -1, opponent, "max" if mm == "min" else "min", heuristic, invalid_move)
         if mm == "max":
             if ret_val > alpha: # '>=' causes wrong move to be selected (and it should update only on improvements)
                 curr_move = move
             alpha = max(alpha, ret_val)
             if alpha >= beta: # value of adversery has now been exceeded, so no need to search further
-                # self.prune_count += len(moves) -moves.index(move)
                 return (beta, curr_move) # pruning
 #                alpha = max(alpha,ret_val)
 
@@ -29,7 +47,6 @@ def alphabeta(conga, alpha, beta, depth, player, mm, heuristic, invalid_move):
                 curr_move = move
             beta = min(beta, ret_val)
             if beta <= alpha:
-                # self.prune_count += len(moves) -moves.index(move)
                 return (alpha, curr_move) # pruning
 #                beta = min(beta,ret_val)
 

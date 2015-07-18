@@ -15,6 +15,7 @@ assert n_iter == sum([node.visits for node in agent_mcts.root_node.child_nodes])
 
 
 
+## win in 1-ply
 n_iter = int(1e3)
 agent_mcts = MonteCarloTreeSearchAgent(
     Player.black,

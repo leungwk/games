@@ -12,7 +12,7 @@ class Arena(object):
         self.move_hist = []
         ##
         self.seed = None
-        self.verbose = False
+        self.verbose = True
         for key, value in kwargs.items():
             if key == 'seed':
                 self.seed = value
@@ -60,13 +60,13 @@ class Arena(object):
 
     def output_results(self, path_output):
         out_dict = {
-            'start_time_game': self.game_start_time,
-            'end_time_game': self.game_end_time,
+            'game_start_time': self.game_start_time,
+            'game_end_time': self.game_end_time,
             ## TODO: use custom name for the case of the same agent
             'agent_1': self.agent_first.__class__.__name__,
             'agent_2': self.agent_second.__class__.__name__,
-            'params_agent_1': self.agent_first.params(),
-            'params_agent_2': self.agent_second.params(),
+            'params.agent_1': self.agent_first.params(),
+            'params.agent_2': self.agent_second.params(),
             'winner': str(self.winner),
             'num_ply': len(self.move_hist),
             'move_hist': [(str(pla), str(mov)) for pla, mov in self.move_hist],

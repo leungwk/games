@@ -31,24 +31,32 @@ def alphabeta(state, alpha, beta, depth, player, mm, heuristic, invalid_move):
         new_state = copy.deepcopy(state)
         new_state.do_move(move)
 
-        opponent = state.opponent(player)
+        ## for one ply, one turn games
+        # opponent = state.opponent(player)
+        # ret_val, ret_move = alphabeta(
+        #     new_state, alpha, beta, depth -1, opponent, "max" if mm == "min" else "min", heuristic, invalid_move)
+
+        ## for multi-ply-per-turn games
+        new_player = new_state.turn
+        if new_player != player: # change view of player
+            new_mm = "max" if mm == "min" else "min"
+        else: # same player's move
+            new_mm = mm
         ret_val, ret_move = alphabeta(
-            new_state, alpha, beta, depth -1, opponent, "max" if mm == "min" else "min", heuristic, invalid_move)
+            new_state, alpha, beta, depth -1, new_player, new_mm, heuristic, invalid_move)
+
         if mm == "max":
             if ret_val > alpha: # '>=' causes wrong move to be selected (and it should update only on improvements)
                 curr_move = move
             alpha = max(alpha, ret_val)
             if alpha >= beta: # value of adversery has now been exceeded, so no need to search further
                 return (beta, curr_move) # pruning
-#                alpha = max(alpha,ret_val)
-
         else: # is "min"
             if ret_val < beta: # '<=' causes wrong move to be selected
                 curr_move = move
             beta = min(beta, ret_val)
             if beta <= alpha:
                 return (alpha, curr_move) # pruning
-#                beta = min(beta,ret_val)
 
     if mm == "max":
         return (alpha, curr_move)

@@ -262,13 +262,9 @@ class Conga(State):
         return Player.opponent(player)
 
 
-    def terminal(self, player):
-        """Check if a terminal state for player. ie. did player win?"""
-        ## not using self.turn because cannot assume alternating turns generally
-
+    def _is_line_formed(self):
         ## horizontal, vertical, or diagonal
-        lines = self._move_lines
-        for move in lines:
+        for move in self._move_lines:
             num_base = 0
             for idx, cell in enumerate(self._board.values_vec(move)):
                 if cell.num == 0:
@@ -280,6 +276,16 @@ class Conga(State):
                     break
             else: # winner
                 return True
+        return False
+
+
+    def terminal(self, player):
+        """Check if a terminal state for player. ie. did player win?"""
+        ## not using self.turn because cannot assume alternating turns generally
+
+        res = self._is_line_formed()
+        if res:
+            return True
 
         ## check if opponent has no more moves
         opponent = self.opponent(player)
@@ -386,9 +392,10 @@ class AlphaBetaAgent(Agent):
         
 
     def decision(self, conga):
-        """Do a one-ply lookahead before alpha-beta proper"""
+        ## Perform a one-ply lookahead before alpha-beta proper, a necessary step because alphabeta will not necessarily select the best move for 'max' (if root) given how 'min' is supposed to decide.
+        ## For instance, if Max is root, even if there exists a winning move for Max in the next ply, Min would evaluate it as -Inf, and as long as other moves exist > -Inf, Max would never see its winning propagated up, hence the need for a 1-ply lookahead.
         ## skips the costlier alphabeta() if successful, but a drag if not
-        move_1ply = one_ply_lookahead_terminal(conga, self.colour, self.heuristic)
+        move_1ply = one_ply_lookahead_terminal(conga, self.colour)
         if move_1ply is not None:
             return move_1ply
 
@@ -406,11 +413,13 @@ class AlphaBetaAgent(Agent):
 
 
     def params(self):
-        return {
+        res = super().params()
+        res.update({
             'explore_depth': self.explore_depth,
             'heuristic': self.heuristic.__name__,
             'seed': self.seed,
-            }
+            })
+        return res
 
 
 class MonteCarloTreeSearchAgent(Agent):
@@ -444,7 +453,9 @@ class MonteCarloTreeSearchAgent(Agent):
 
 
     def params(self):
-        return {'n_iter': self.n_iter}
+        res = super().params()
+        res.update({'n_iter': self.n_iter})
+        return res
 
 
 if __name__ == '__main__':
@@ -453,7 +464,7 @@ if __name__ == '__main__':
     parser.add_argument('--seed', type=int, default=None)
     parser.add_argument('--path-output', type=str, default=None)
     parser.add_argument('--pylab', default='') # remove from python-mode arguments
-    parser.add_argument('--verbose', dest='verbose', action='store_true')
+    parser.add_argument('--no-verbose', dest='no_verbose', action='store_true')
     parser.add_argument('--black', type=str, default='AlphaBetaAgent')
     parser.add_argument('--white', type=str, default='PlayerAgent')
     parser.set_defaults(verbose=False)
@@ -461,7 +472,7 @@ if __name__ == '__main__':
 
     kwargs = {
         'seed': args.seed,
-        'verbose': args.verbose,
+        'verbose': not args.no_verbose,
         }
 
     n_iter = 100

@@ -13,7 +13,7 @@ class Agent(object):
 
     def params(self):
         """Agent specific params that change its behaviour"""
-        return {}
+        return {'colour': str(self.colour)}
 
 
 class RandomAgent(Agent):
@@ -33,3 +33,7 @@ class RandomAgent(Agent):
         if not moves:
             return self.invalid_move
         return random.sample(moves, 1)[0]
+
+
+    def params(self):
+        return super().params()

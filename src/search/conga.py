@@ -81,12 +81,15 @@ def heuristic_1(conga, player):
     ## shapes
     weight_victory_hole = 32*2
 
+    ## terminal check
+    opponent = conga.opponent(player)
+    if conga._is_line_formed():
+        return float('-Inf') if conga.turn == player else float('Inf')
+
     ## near terminal check
     player_legal_moves = list(conga.get_moves(player))
     if not player_legal_moves:
         return float('-Inf')
-
-    opponent = conga.opponent(player)
     opponent_legal_moves = list(conga.get_moves(opponent))
     if not opponent_legal_moves:
         return float('Inf')

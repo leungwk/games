@@ -8,12 +8,38 @@ from functools import partial
 
 import copy
 
-#### 
+####
 
 assert Player.even == Player.opponent(Player.odd)
 assert Player.odd == Player.opponent(Player.even)
 assert Player.invalid == Player.opponent(Player.invalid)
 assert Player.none == Player.opponent(Player.none)
+
+#### pieces
+
+assert Square(36, Player.even) == Square(36, Player.even)
+
+pyramid_even = Pyramid(91, Player.even, pieces=[
+    Square(36, Player.even),
+    Square(25, Player.even),
+    Triangle(16, Player.even),
+    Triangle(9, Player.even),
+    Circle(4, Player.even),
+    Circle(1, Player.even),
+    ])
+pyramid_even_2 = copy.deepcopy(pyramid_even)
+assert pyramid_even == pyramid_even_2
+
+piece_S25 = Square(25, Player.even)
+new_pyramid = Pyramid.remove_component(pyramid_even_2, piece_S25)
+assert pyramid_even == pyramid_even_2 != new_pyramid != piece_S25
+
+assert piece_S25 in [piece_S25, Square(36, Player.even)]
+assert piece_S25 in pyramid_even.pieces
+assert pyramid_even in set([pyramid_even_2])
+assert piece_S25 not in set([pyramid_even_2, Square(36, Player.even)])
+assert 1 == len(set([Square(36, Player.even), Square(36, Player.even)]))
+
 
 #### Agent
 
@@ -48,6 +74,20 @@ assert tuple(agent_player._parse_cmd(cmd)) == (
     '(7, 10)',
     'Triangle(36, Player.even)'
     )
+
+## move obj
+
+assert Move((4, 4), (3, 3)) in set([Move((4, 4), (3, 3)), Move((4, 4), (3, 2))])
+assert Move((4, 4), (3, 3)) not in set([Move((4, 4), (3, 1)), Move((4, 4), (3, 2))])
+assert Take((5, 4), (6, 7), Circle(36, Player.even)) == Take((5, 4), (6, 7), Circle(36, Player.even))
+assert Take((5, 4), (6, 7), Circle(36, Player.even)) != Take((5, 4), (6, 7), Circle(2, Player.even))
+assert Drop(1, (1, 1)) == Drop(1, (1, 1))
+assert Drop(1, (1, 1)) != Drop(2, (1, 1))
+assert DECLARE_VICTORY_MOVE == DECLARE_VICTORY_MOVE
+assert DONE_MOVE == DONE_MOVE
+assert DECLARE_VICTORY_MOVE != DONE_MOVE
+assert Move((4, 4), (3, 3)) not in set([Move((4, 4), (3, 1)), Move((4, 4), (3, 2)), Drop(1, (1, 1)), DONE_MOVE])
+
 
 #### ================================================================
 #### moving
@@ -114,7 +154,7 @@ assert rith.is_legal_move(Move((5, 4), (8, 4))) # valid dir, valid step size
 assert rith.is_legal_move(Move((5, 4), (8, 5))) # flying, right step size
 
 ## Pyramid
-# b = S64_ S49_ T36_ T25_ C16_ 
+# b = S64_ S49_ T36_ T25_ C16_
 assert rith.is_legal_move(Move((4, 6), (3, 5))) # valid C
 assert rith.is_legal_move(Move((4, 6), (2, 6))) # valid T
 assert rith.is_legal_move(Move((4, 6), (1, 6))) # valid S
@@ -709,7 +749,7 @@ rith.settings['taking.addition.any_adjacency'] = False
 ## piece-pyramid
 ## pyramid-piece
 ## pyramid-pyramid
-## for adjacency taking 
+## for adjacency taking
 
 
 
@@ -801,7 +841,7 @@ assert not rith._valid_taking_by_multiplication(Take(None, (7, 10), piece_C81)) 
 assert not rith._valid_taking_by_multiplication(Take([(6, 8), (7, 8)], (7, 10), piece_C81)) # 81=9*9, but one of them requires a flying move
 
 
-## void_spaces
+## void spaces
 
 ## piece-piece
 rith.turn = Player.odd
@@ -1125,22 +1165,125 @@ rith._board = RithBoard(16, 8) # blank it
 rith._board[(4, 4)] = Square(15, Player.even)
 
 ## move
-assert 1 +12 == len(rith.get_moves(Player.even)) # one because of DONE_MOVE
+move_counts = [
+    ## move
+    12, # S15
+    ## done
+    1,
+]
+assert sum(move_counts) == len(rith.get_moves(Player.even))
 rith._board[(5, 5)] = Circle(4, Player.even)
-assert 1 +12 +3 == len(rith.get_moves(Player.even)) # not +4 because of S15 at (4,4)
+move_counts = [
+    ## move
+    12, # S15
+    3,  # C4 (S15 blocks one move)
+    ## done
+    1,
+]
+assert sum(move_counts) == len(rith.get_moves(Player.even))
 
 rith._board[(8, 1)] = Circle(2, Player.even)
-assert 1 +12 +3 +1 == len(rith.get_moves(Player.even))
+move_counts = [
+    ## move
+    12, # S15
+    3,  # C4 (S15 blocks one move)
+    1,  # C2
+    ## done
+    1,
+]
+assert sum(move_counts) == len(rith.get_moves(Player.even))
 
-## take (eruption)
+## taking by eruption
 rith._board[(5, 11)] = Square(28, Player.odd)
-assert 1 +12 +3 +1 +1 == len(rith.get_moves(Player.even)) # now a take move available
+move_counts = [
+    ## move
+    12, # S15
+    3,  # C4 (S15 blocks one move)
+    1,  # C2
+    ## take
+    1, # C4 at (5, 5) takes S28_ at (5, 11)
+    ## done
+    1,
+]
+assert sum(move_counts) == len(rith.get_moves(Player.even))
 
 ## drop
 rith._board.prisoners_held_by_even = [
     Square(120, Player.even)
     ]
-assert 1 +12 +3 +1 +1 +7 == len(rith.get_moves(Player.even)) # 1 prisoner, 7 available back row spaces
+move_counts = [
+    ## move
+    12, # S15
+    3,  # C4 (S15 blocks one move)
+    1,  # C2
+    ## take
+    1,  # C4 at (5, 5) takes S28_ at (5, 11)
+    ## drop
+    7,  # 1 prisoner, 7 available back row spaces
+    ## done
+    1,
+]
+assert sum(move_counts) == len(rith.get_moves(Player.even))
+
+# taking by siege
+rith._board[(1, 1)] = Circle(3, Player.odd)
+rith._board[(2, 2)] = Triangle(81, Player.even)
+move_counts = [
+    ## move
+    12, # S15
+    3,  # C4 (S15 blocks one move)
+    1,  # C2
+    6,  # T81
+    ## take
+    1,  # eruption: C4 at (5, 5) takes S28_ at (5, 11)
+    1,  # siege at (1,1)
+    ## drop
+    6,  # 1 prisoner, 6 available back row spaces
+    ## done
+    1,
+]
+assert sum(move_counts) == len(rith.get_moves(Player.even))
+
+# taking by equality
+rith._board[(4, 2)] = Circle(81, Player.odd)
+move_counts = [
+    ## move
+    11, # S15 (one move blocked by C81_)
+    3,  # C4 (S15 blocks one move)
+    1,  # C2
+    5,  # T81
+    ## take
+    1,  # eruption: C4 at (5, 5) takes S28_ at (5, 11)
+    1,  # siege at (1,1)
+    1,  # equality: (2, 2) takes (4, 2)
+    ## drop
+    6,  # 1 prisoner, 7 available back row spaces
+    ## done
+    1,
+]
+assert sum(move_counts) == len(rith.get_moves(Player.even))
+
+# taking by multiplication
+rith._board[(7, 2)] = Triangle(90, Player.odd)
+rith._board[(7, 5)] = Square(45, Player.even)
+move_counts = [
+    ## move
+    10, # S15 (one move blocked by C81_, one by S45)
+    3,  # C4 (S15 blocks one move)
+    0,  # C2
+    5,  # T81
+    6,  # S45
+    ## take
+    1,  # eruption: C4 at (5, 5) takes S28_ at (5, 11)
+    1,  # siege at (1,1)
+    1,  # equality: T81 at (2, 2) takes C81_ at (4, 2)
+    1,  # taking by multplication: T90_ at (7,2)
+    ## drop
+    6,  # 1 prisoner, 6 available back row spaces
+    ## done
+    1,
+]
+assert sum(move_counts) == len(rith.get_moves(Player.even))
 
 
 
@@ -1151,7 +1294,38 @@ rith._board[(5, 9)] = Triangle(30, Player.odd)
 rith._board[(6, 9)] = Square(45, Player.even)
 
 ## vict
-assert 11 +8 +1 +1 +1 == len(rith.get_moves(Player.even)) # 11 for S15, 8 for S45 (lost 1 by being blocked, and 3 from board edge), 1 for vict, 1 for done, 1 for taking by eruption
+## and taking by addition (line adjacency)
+move_counts = [
+    ## move
+    11, # S15
+    8,  # S45 (lost 1 by being blocked, and 3 from board edge)
+    ## take
+    1,  # eruption
+    1,  # taking by addition (line adjacency)
+    ## done
+    1,
+    ## vict
+    1,
+]
+assert sum(move_counts) == len(rith.get_moves(Player.even))
+
+settings['taking.eruption'] = False
+settings['taking.multiplication.void_spaces'] = True
+rith._board[(4, 3)] = Circle(3, Player.odd)
+move_counts = [
+    ## move
+    11, # S15
+    8,  # S45 (lost 1 by being blocked, and 3 from board edge)
+    ## take
+    1,  # taking by addition (line adjacency)
+    1,  # taking by multiplication (void spaces)
+    ## done
+    1,
+    ## vict
+    1,
+]
+## taking by multiplication (void spaces)
+assert sum(move_counts) == len(rith.get_moves(Player.even))
 
 #### ================================================================
 #### do_move
@@ -1318,7 +1492,11 @@ assert rith.do_move(DONE_MOVE)
 assert len(rith._board.prisoners_held_by_odd) == 1
 assert len(rith._board.prisoners_held_by_even) == 3
 rith._board[(8, 2)] = Square(45, Player.odd) # by capture
-assert rith.do_move(Take((8, 2), (5, 2), pyramid_even)) # take the entire thing
+pyramid_even_2 = Pyramid(45, Player.even, pieces=[
+    Square(36, Player.even),
+    Triangle(9, Player.even),
+    ])
+assert rith.do_move(Take((8, 2), (5, 2), pyramid_even_2)) # take the entire thing
 assert len(rith._board.prisoners_held_by_odd) == 3
 assert PieceName.pyramid not in [p.name for p in rith._board.prisoners_held_by_odd]
 assert len(rith._board.prisoners_held_by_even) == 3

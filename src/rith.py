@@ -12,11 +12,16 @@ import itertools
 from itertools import islice, combinations, zip_longest
 from collections import defaultdict
 
-from common.agent import Agent
+from common.agent import Agent, RandomAgent
 from common.arena import Arena
 
 from settings.rith import settings_fulke_1, settings_custom_1# , _setup_fulke_1, _setup_fulke_3
 
+import datetime
+import os
+
+DATA_DIR = 'data/'
+RITH_OUT_DIR = DATA_DIR +'out/rith/'
 
 class Action(object):
     """Object for one of the kinds of allowed actions in rithmomachia.
@@ -38,9 +43,24 @@ class Action(object):
         return "Action({src}, {dest}, type='{type}')".format(src=self.src, dest=self.dest, type=self.type)
 
 
+    def __eq__(self, other):
+        return (self.src == other.src) and \
+          (self.dest == other.dest) and \
+          (self.type == other.type)
+
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+
+    def __hash__(self):
+        return hash((self.src, self.dest, self.type))
+
+
 class Move(Action):
     def __init__(self, src, dest):
         super().__init__(src, dest, type='move')
+
 
     def __repr__(self):
         return 'Move({src}, {dest})'.format(src=self.src, dest=self.dest)
@@ -56,16 +76,32 @@ class Take(Action):
         super().__init__(src, dest, type='take')
         self.piece = piece
 
+
     def __repr__(self):
         return 'Take({src}, {dest}, {piece})'.format(src=self.src, dest=self.dest, piece=repr(self.piece))
+
+
+    def __hash__(self):
+        res = super().__hash__()
+        return hash((res, self.piece))
+
+
+    def __eq__(self, other):
+        res = super().__eq__(other)
+        if not res:
+            return res
+        return self.piece == other.piece
 
 
 class Drop(Action):
     def __init__(self, src, dest):
         super().__init__(src, dest, type='drop')
 
+
     def __repr__(self):
         return 'Drop({src}, {dest})'.format(src=self.src, dest=self.dest)
+
+
 
 DECLARE_VICTORY_MOVE = Action(None, None, type='vict')
 DONE_MOVE = Action(None, None, type='done')
@@ -267,7 +303,7 @@ class Piece(object):
 
     def __init__(self, num, name, colour, marches, flights):
         self.num = num # int
-        self.name = name # {'C','T','S','P'}
+        self.name = name
         self.colour = colour # {Player.even, Player.odd}
         ## how the piece moves relative to a starting coordinate
         self._marches = marches
@@ -289,7 +325,11 @@ class Piece(object):
 
 
     def __repr__(self):
-        return '{}({}, {}, {})'.format(self.__class__.__name__, self.num, self.name, self.colour)
+        return "{}({}, {})".format(self.__class__.__name__, self.num, repr(self.colour))
+
+
+    def __hash__(self):
+        return hash((self.num, self.name, self.colour))
 
 
     @property
@@ -330,11 +370,36 @@ class Pyramid(Piece):
             if key == 'pieces':
                 self._pieces = value
 
+
+    def __eq__(self, other):
+        res = super().__eq__(other)
+        if not res:
+            return res
+        ## is at least a pyramid
+        for p_self, p_other in zip_longest(self._pieces, other._pieces, fillvalue=[NONE_PIECE]):
+            if (p_self == NONE_PIECE) or (p_other == NONE_PIECE):
+                return False # unequal length since a pyramid should not contain NONE_PIECE
+            res = super().__eq__(other)
+            if not res:
+                return False
+        return True
+
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+
+    def __hash__(self):
+        res = super().__hash__()
+        return hash((res, tuple(self._pieces)))
+
+
     ## override marches and flights to return all its components
     @property
     def pieces(self):
         """Convenience function to avoid separate checks for the pyramid"""
         return [self] +self._pieces # [self] because one wants to check the pyramid as a whole, in addition to its components
+
 
     ## a pyramid's marches and flights are the union of all components
     @property
@@ -344,6 +409,7 @@ class Pyramid(Piece):
             acc.update(piece._marches)
         return acc
 
+
     @property
     def flights(self):
         acc = set()
@@ -352,17 +418,30 @@ class Pyramid(Piece):
         return acc
 
 
-    def remove_component(self, piece):
+    @staticmethod
+    def remove_component(pyramid, piece):
+        """Remove component piece from pyramid and return a new, updated pyramid"""
+        if pyramid.name != PieceName.pyramid:
+            return NONE_PIECE
+
         acc = []
         removed_component = None
-        for comp in self._pieces:
+        for comp in pyramid.pieces:
+            if comp.name == PieceName.pyramid:
+                continue # ignore
+
             if comp != piece:
                 acc.append(comp)
             else:
-                removed_component = comp
-        self._pieces = acc
-        self.num = sum([p.num for p in self._pieces])
-        return removed_component
+                ## remove only one piece in case pyramid contains multiple, equal pieces
+                if removed_component is None:
+                    removed_component = comp
+                else:
+                    acc.append(comp)
+        if not acc:
+            return NONE_PIECE
+        tot = sum([p.num for p in acc])
+        return Pyramid(tot, pyramid.colour, pieces=acc)
 
 
 class NonePiece(Piece):
@@ -756,9 +835,16 @@ class Rith(State):
             return True
         if ((move.src is None) or (type(move.src) == list)) and self._valid_taking_by_addition(move):
             return True
-        if ((move.src is None) or (type(move.src) == list)) and self._valid_taking_by_multiplication(move):
+        if ((move.src is None) or (type(move.src) == list) or self.__valid_coord_obj(move.src)) and self._valid_taking_by_multiplication(move):
             return True
         return False
+
+
+    def __valid_coord_obj(self, coord):
+        return (type(coord) == tuple) and \
+            (len(coord) == 2) and \
+            (type(coord[0]) == int) and \
+            (type(coord[1]) == int)
 
 
     def _valid_move_obj(self, move, allow_empty_src=False, allow_empty_dest=False):
@@ -1182,7 +1268,8 @@ class Rith(State):
                 return True
 
         if self.settings.get('taking.multiplication.void_spaces', False):
-            if (move.src is None) or (type(move.src) is list): # catch improperly constructed move objects, and takes only itended for .marches above
+            if not self.__valid_coord_obj(move.src):
+                return False # catch improperly constructed move objects; tuple is intended for this, while src=None or src is a list is intended for 'taking.multiplication.marches'
                 return False
             if getattr(move, 'piece', None) is None:
                 return False
@@ -1569,11 +1656,11 @@ class Rith(State):
                         prisoners.append(p_cur)
                     self._board[coord_dest] = NONE_PIECE
                 else: # remove a particular component
-                    p_rm = piece_dest.remove_component(move.piece)
+                    p_rm = move.piece
+                    new_pyramid = Pyramid.remove_component(piece_dest, move.piece)
                     p_rm.colour = self.turn # change sides
                     prisoners.append(p_rm)
-                    if piece_dest.num == 0: # pyramid only had one component left, and there are no zero pieces in this game
-                        self._board[coord_dest] = NONE_PIECE
+                    self._board[coord_dest] = new_pyramid # will be NONE_PIECE if all components removed
             else:
                 piece_dest.colour = self.turn
                 prisoners.append(piece_dest)
@@ -1609,14 +1696,14 @@ class Rith(State):
     def get_moves(self, player):
         ## as currently coded, it might be highly redundant and unoptimized
         if self.turn != player:
-            return [] # wrong turn
+            return set() # wrong turn
 
-        acc_moves = []
+        acc_moves = set()
         for coord_cur, piece_cur in self._board.items():
             if piece_cur == NONE_PIECE:
                 continue
 
-            colour_opponent = Player.opponent(piece_cur.colour)
+            colour_opponent = Player.opponent(player)
             if piece_cur.colour == colour_opponent:
                 ## taking by siege
                 ## taking by addition/subtraction
@@ -1624,20 +1711,20 @@ class Rith(State):
                 for piece in piece_cur.pieces:
                     move_obj = Take(None, coord_cur, piece)
                     if self.is_legal_move(move_obj):
-                        acc_moves.append(move_obj)
+                        acc_moves.add(move_obj)
 
             if piece_cur.colour == player:
                 for deltas in [piece_cur.marches, piece_cur.flights]:
                     for coord_dest, piece_dest in self._board.items_fan(coord_cur, deltas):
                         move_obj = Move(coord_cur, coord_dest)
                         if self.is_legal_move(move_obj):
-                            acc_moves.append(move_obj)
+                            acc_moves.add(move_obj)
 
                         ## taking by equality
                         for piece in piece_dest.pieces:
                             move_obj = Take(coord_cur, coord_dest, piece)
                             if self.is_legal_move(move_obj):
-                                acc_moves.append(move_obj)
+                                acc_moves.add(move_obj)
 
                 for deltas_set in [deltas_cross, deltas_xshape]:
                     for delta_xy in deltas_set:
@@ -1645,7 +1732,7 @@ class Rith(State):
                             if idx == 0:
                                 continue
                             ## taking by eruption
-                            ## taking by addition/subtraction, void spaces
+                            ## taking by multiplication/division, void spaces
                             if piece == NONE_PIECE:
                                 continue
                             if piece.colour == player:
@@ -1653,7 +1740,7 @@ class Rith(State):
                             for p_in in piece.pieces:
                                 move_obj = Take(coord_cur, coord, p_in)
                                 if self.is_legal_move(move_obj):
-                                    acc_moves.append(move_obj)
+                                    acc_moves.add(move_obj)
 
         ## drop
         prisoners = []
@@ -1668,7 +1755,7 @@ class Rith(State):
                 coord = (col, drop_row)
                 move_obj = Drop(idx_p, coord)
                 if self.is_legal_move(move_obj):
-                    acc_moves.append(move_obj)
+                    acc_moves.add(move_obj)
 
         ## vict
         ## TODO: seems like a hack
@@ -1676,10 +1763,10 @@ class Rith(State):
         res = self.terminal(player)
         self._victory_declared = False
         if res:
-            acc_moves.append(DECLARE_VICTORY_MOVE)
+            acc_moves.add(DECLARE_VICTORY_MOVE)
 
         ## done
-        acc_moves.append(DONE_MOVE)
+        acc_moves.add(DONE_MOVE)
 
         return acc_moves
 
@@ -1799,18 +1886,26 @@ if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser(description='')
     parser.add_argument('--pylab', default='') # remove from python-mode arguments
-    parser.add_argument('--agent-first', type=str, default='PlayerAgent')
-    parser.add_argument('--agent-second', type=str, default='PlayerAgent')
+    parser.add_argument('--path-output', type=str, default=None)
+    parser.add_argument('--even', type=str, default='PlayerAgent')
+    parser.add_argument('--odd', type=str, default='PlayerAgent')
     args = parser.parse_args()
 
     n_iter = 100
     for _ in range(n_iter):
-        first = eval(args.agent_first)
-        second = eval(args.agent_second)
+        first = eval(args.even)
+        second = eval(args.odd)
         arena = Arena(
             Rith(settings=settings_custom_1),
             first(Player.even),
             second(Player.odd),
             )
         arena.play()
+        if args.path_output is None:
+            if not os.path.exists(RITH_OUT_DIR):
+                os.makedirs(RITH_OUT_DIR)
+            path_output = RITH_OUT_DIR +'arena.' +datetime.datetime.now().strftime('%Y-%m-%dT%H%M%S')
+        else:
+            path_output = args.path_output
+        arena.output_results(path_output)
         sys.exit(0)

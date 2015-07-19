@@ -10,6 +10,7 @@ import copy
 import math
 import datetime
 import sys
+import os
 
 from common.board import Board
 from common.state import State
@@ -25,6 +26,7 @@ from search.search import one_ply_lookahead_terminal
 from search.mcts import UCTNode, MonteCarloTreeSearch
 
 DATA_DIR = 'data/'
+CONGA_OUT_DIR = DATA_DIR +'out/conga/'
 
 Move = namedtuple('Move', ['src', 'dest']) # should be a class to enforce that fields should be a 2-tuples
 INVALID_MOVE = Move(None, None)
@@ -489,7 +491,9 @@ if __name__ == '__main__':
             **kwargs)
         arena.play()
         if args.path_output is None:
-            path_output = DATA_DIR +'out/conga/arena.' +datetime.datetime.now().strftime('%Y-%m-%dT%H%M%S')
+            if not os.path.exists(CONGA_OUT_DIR):
+                os.makedirs(CONGA_OUT_DIR)
+            path_output = CONGA_OUT_DIR +'arena.' +datetime.datetime.now().strftime('%Y-%m-%dT%H%M%S')
         else:
             path_output = args.path_output
         arena.output_results(path_output)

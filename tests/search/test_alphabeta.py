@@ -36,6 +36,7 @@ agent_ab = AlphaBetaAgent(
     explore_depth=4,
     )
 conga = copy.deepcopy(base_conga)
+conga.turn = Player.white
 
 val_before = heuristic_1(conga, Player.white)
 move = agent_ab.decision(conga)

@@ -3,7 +3,7 @@ from conga import Player, Conga, Move, INVALID_MOVE, MonteCarloTreeSearchAgent
 n_iter = int(1e2)
 conga = Conga()
 agent_mcts = MonteCarloTreeSearchAgent(
-    Player.white,
+    Player.black,
     invalid_move=INVALID_MOVE,
     n_iter=n_iter,
     hold_tree=True,

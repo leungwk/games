@@ -148,6 +148,9 @@ class Conga(State):
         if cell_dest.player in [Player.invalid]:
             return False
 
+        if cell_src.player != self.turn:
+            return False # cannot move opponent's piece
+
         if ((cell_src.player == Player.black) and \
             (cell_dest.player == Player.white)) or \
            ((cell_src.player == Player.white) and \

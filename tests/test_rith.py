@@ -1102,7 +1102,56 @@ rith._board[(4, 9)] = Circle(8, Player.even)
 rith.do_move(DECLARE_VICTORY_MOVE)
 assert not rith.terminal(Player.even) # out of order
 
+#### ================================================================
+#### get_moves
+#### ================================================================
 
+settings = {
+    'board_setup': 'fulke_1', # starts closer together
+    'taking.equality.flight': False, # flight should be for jumping only
+    'taking.eruption': True, # otherwise the opening game seems slow, and might give a more "math-y" feel
+    # after all, what is the equivalent of an "archer"?
+    'taking.siege.block_marches': True,
+    'taking.siege.surrounded': True,
+    'taking.addition.marches': True,
+    'taking.addition.line_adjacency': True,
+    'taking.addition.any_adjacency': False,
+    'taking.multiplication.marches': True,
+    'taking.multiplication.void_spaces': False, # eruption better
+    'victory.take_pyramid_first': True, # forces the enemy to go after it
+}
+rith = Rith(settings=settings)
+rith._board = RithBoard(16, 8) # blank it
+rith._board[(4, 4)] = Square(15, Player.even)
+
+## move
+assert 1 +12 == len(rith.get_moves(Player.even)) # one because of DONE_MOVE
+rith._board[(5, 5)] = Circle(4, Player.even)
+assert 1 +12 +3 == len(rith.get_moves(Player.even)) # not +4 because of S15 at (4,4)
+
+rith._board[(8, 1)] = Circle(2, Player.even)
+assert 1 +12 +3 +1 == len(rith.get_moves(Player.even))
+
+## take (eruption)
+rith._board[(5, 11)] = Square(28, Player.odd)
+assert 1 +12 +3 +1 +1 == len(rith.get_moves(Player.even)) # now a take move available
+
+## drop
+rith._board.prisoners_held_by_even = [
+    Square(120, Player.even)
+    ]
+assert 1 +12 +3 +1 +1 +7 == len(rith.get_moves(Player.even)) # 1 prisoner, 7 available back row spaces
+
+
+
+rith = Rith(settings=settings)
+rith._board = RithBoard(16, 8) # blank it
+rith._board[(4, 9)] = Square(15, Player.even)
+rith._board[(5, 9)] = Triangle(30, Player.odd)
+rith._board[(6, 9)] = Square(45, Player.even)
+
+## vict
+assert 11 +8 +1 +1 +1 == len(rith.get_moves(Player.even)) # 11 for S15, 8 for S45 (lost 1 by being blocked, and 3 from board edge), 1 for vict, 1 for done, 1 for taking by eruption
 
 #### ================================================================
 #### do_move

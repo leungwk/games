@@ -34,10 +34,16 @@ class Action(object):
             if key == 'type':
                 self.type = value
 
+    def __repr__(self):
+        return "Action({src}, {dest}, type='{type}')".format(src=self.src, dest=self.dest, type=self.type)
+
 
 class Move(Action):
     def __init__(self, src, dest):
         super().__init__(src, dest, type='move')
+
+    def __repr__(self):
+        return 'Move({src}, {dest})'.format(src=self.src, dest=self.dest)
 
 
 class Take(Action):
@@ -50,11 +56,16 @@ class Take(Action):
         super().__init__(src, dest, type='take')
         self.piece = piece
 
+    def __repr__(self):
+        return 'Take({src}, {dest}, {piece})'.format(src=self.src, dest=self.dest, piece=repr(self.piece))
+
 
 class Drop(Action):
     def __init__(self, src, dest):
         super().__init__(src, dest, type='drop')
 
+    def __repr__(self):
+        return 'Drop({src}, {dest})'.format(src=self.src, dest=self.dest)
 
 DECLARE_VICTORY_MOVE = Action(None, None, type='vict')
 DONE_MOVE = Action(None, None, type='done')
@@ -1593,6 +1604,84 @@ class Rith(State):
             return True
 
         return None # unrecognized
+
+
+    def get_moves(self, player):
+        ## as currently coded, it might be highly redundant and unoptimized
+        if self.turn != player:
+            return [] # wrong turn
+
+        acc_moves = []
+        for coord_cur, piece_cur in self._board.items():
+            if piece_cur == NONE_PIECE:
+                continue
+
+            colour_opponent = Player.opponent(piece_cur.colour)
+            if piece_cur.colour == colour_opponent:
+                ## taking by siege
+                ## taking by addition/subtraction
+                ## taking by multiplication/division, first kind
+                for piece in piece_cur.pieces:
+                    move_obj = Take(None, coord_cur, piece)
+                    if self.is_legal_move(move_obj):
+                        acc_moves.append(move_obj)
+
+            if piece_cur.colour == player:
+                for deltas in [piece_cur.marches, piece_cur.flights]:
+                    for coord_dest, piece_dest in self._board.items_fan(coord_cur, deltas):
+                        move_obj = Move(coord_cur, coord_dest)
+                        if self.is_legal_move(move_obj):
+                            acc_moves.append(move_obj)
+
+                        ## taking by equality
+                        for piece in piece_dest.pieces:
+                            move_obj = Take(coord_cur, coord_dest, piece)
+                            if self.is_legal_move(move_obj):
+                                acc_moves.append(move_obj)
+
+                for deltas_set in [deltas_cross, deltas_xshape]:
+                    for delta_xy in deltas_set:
+                        for idx, (coord, piece) in enumerate(self._board.items_delta_xy(coord_cur, delta_xy)):
+                            if idx == 0:
+                                continue
+                            ## taking by eruption
+                            ## taking by addition/subtraction, void spaces
+                            if piece == NONE_PIECE:
+                                continue
+                            if piece.colour == player:
+                                break
+                            for p_in in piece.pieces:
+                                move_obj = Take(coord_cur, coord, p_in)
+                                if self.is_legal_move(move_obj):
+                                    acc_moves.append(move_obj)
+
+        ## drop
+        prisoners = []
+        if self.turn == Player.odd:
+            prisoners = self._board.prisoners_held_by_odd
+            drop_row = 16
+        elif self.turn == Player.even:
+            prisoners = self._board.prisoners_held_by_even
+            drop_row = 1
+        for idx_p, _ in enumerate(prisoners):
+            for col in range(1, self._board.ncols +1):
+                coord = (col, drop_row)
+                move_obj = Drop(idx_p, coord)
+                if self.is_legal_move(move_obj):
+                    acc_moves.append(move_obj)
+
+        ## vict
+        ## TODO: seems like a hack
+        self._victory_declared = True
+        res = self.terminal(player)
+        self._victory_declared = False
+        if res:
+            acc_moves.append(DECLARE_VICTORY_MOVE)
+
+        ## done
+        acc_moves.append(DONE_MOVE)
+
+        return acc_moves
 
 
 class PlayerAgent(Agent):

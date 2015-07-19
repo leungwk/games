@@ -5,7 +5,10 @@ class State(object):
         pass
 
     def get_moves(self, player):
-        """Typically required only for search algorithms"""
+        """Get all legal and valid moves for player.
+
+        Typically required only for search algorithms.
+        """
         pass
 
     def terminal(self, player):

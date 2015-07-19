@@ -1,2 +1,13 @@
 ; -*- mode: org; -*-
 
+* rithmomachia
+
+References to "Fulke" refers to the 1563 translation by "Ralph Lever and
+augmented by William Fulke". A printing in more modern English appears
+in /The Philosopher's Game/ (2001) by Ann E. Moyer.
+
+The game logic, its movement, taking, drop, and victory rules, were
+taken and interpreted from Fulke.
+
+The code allows one to mix and match different rules by changing the
+=settings= value when initalizing =Rith=.

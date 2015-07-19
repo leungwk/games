@@ -393,7 +393,7 @@ class AlphaBetaAgent(Agent):
 
     def decision(self, conga):
         ## Perform a one-ply lookahead before alpha-beta proper, a necessary step because alphabeta will not necessarily select the best move for 'max' (if root) given how 'min' is supposed to decide.
-        ## For instance, if Max is root, even if there exists a winning move for Max in the next ply, Min would evaluate it as -Inf, and as long as other moves exist > -Inf, Max would never see its winning propagated up, hence the need for a 1-ply lookahead.
+        ## For instance, if Max is root, even if there exists a winning move for Max in the next ply, Min would evaluate it as -Inf. As long as other moves exist > -Inf, Max would select those other moves, because the resultant state is evaluated from Min's perspective (which is a losing state). Hence the need for a 1-ply lookahead.
         ## skips the costlier alphabeta() if successful, but a drag if not
         move_1ply = one_ply_lookahead_terminal(conga, self.colour)
         if move_1ply is not None:

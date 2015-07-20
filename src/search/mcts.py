@@ -62,18 +62,20 @@ class MonteCarloTreeSearch(object):
     From algo 2 in /A survey of monte carlo tree search methods/ (2012), Browne et al.
     """
 
-    def __init__(self, n_iter):
+    def __init__(self, n_iter, invalid_move, **kwargs):
         self.n_iter = n_iter
+        self.invalid_move = invalid_move
+        for key, value in kwargs.items():
+            if key == 'hold_tree':
+                self.hold_tree = value
     ## assuming only two players, and that one turn is one ply
 
 
     def expand(self, node):
         move = node.untried_moves.pop()
         new_state = copy.deepcopy(node.state)
-        cur_player = node.player
         new_state.do_move(move) # now new player should be indicated in player_curr
         new_player = new_state.turn
-        # opponent = new_state.opponent(cur_player) # TODO: replace with Player.opponent # not necessarily if the game is not turn-by-turn
         new_node = UCTNode(parent=node, state=new_state, move=move, player=new_player)
         node.child_nodes.append(new_node)
         return new_node
@@ -127,8 +129,6 @@ class MonteCarloTreeSearch(object):
                 return -1 if cur_player == orig_player else +1 # TODO: is this correct?
             move = random.sample(moves, 1)[0]
             new_state.do_move(move)
-            # cur_player = new_state.opponent(cur_player) # TODO: replace with Player.opponent
-            # cur_player = new_state.player_curr
         return +1 if cur_player == orig_player else -1 # TODO: is this correct?
 
 
@@ -137,3 +137,17 @@ class MonteCarloTreeSearch(object):
             node.visits += 1
             node.payout += delta
             node = node.parent
+
+
+    def uct_search(self, root_state, player):
+        root_node = UCTNode(parent=None, state=root_state, move=self.invalid_move, player=player)
+
+        node = root_node
+        for _ in range(self.n_iter):
+            ## "non-terminal" means there is at least 1 move for node.player, ...
+            new_node = self.tree_policy(node)
+            delta = self.default_policy(new_node)
+            self.backup(new_node, delta)
+        if self.hold_tree:
+            self.root_node = root_node # hold onto the tree (for testing only)
+        return self.best_child(root_node, 0).move

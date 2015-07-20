@@ -411,7 +411,7 @@ class AlphaBetaAgent(Agent):
         ret_val, ret_move = self.alphabeta(
             conga, neginf, posinf, explore_depth, self.colour, "max", self.heuristic, self.invalid_move)
         if ret_move == self.invalid_move:
-            ## because the search starts with "max", it means all eventual moves will lead to a terminal state (-inf), because "min" will choose only victory states
+            ## when the search starts with "max", an invalid move returned means that all eventual moves will lead to a terminal state (-inf), because "min" will choose only victory moves
             ## it might also return something if using ">=" rather than ">" (see the code), but this will create needless moves
             return random.sample([m for m in conga.get_moves(self.colour)], 1)[0] # at least return something rather than invalid
         return ret_move
@@ -433,6 +433,7 @@ class MonteCarloTreeSearchAgent(Agent):
         super().__init__(colour)
         self.n_iter = int(1e3)
         self.hold_tree = False
+        self.invalid_move = None
         for key, value in kwargs.items():
             if key == 'invalid_move':
                 self.invalid_move = value
@@ -440,21 +441,11 @@ class MonteCarloTreeSearchAgent(Agent):
                 self.n_iter = value
             elif key == 'hold_tree':
                 self.hold_tree = value
-        self.search = MonteCarloTreeSearch(self.n_iter)
+        self.search = MonteCarloTreeSearch(self.n_iter, self.invalid_move, hold_tree=self.hold_tree)
 
 
     def decision(self, root_state):
-        root_node = UCTNode(parent=None, state=root_state, move=self.invalid_move, player=self.colour)
-
-        node = root_node
-        for _ in range(self.n_iter):
-            ## "non-terminal" means there is at least 1 move for node.player, ...
-            new_node = self.search.tree_policy(node)
-            delta = self.search.default_policy(new_node)
-            self.search.backup(new_node, delta)
-        if self.hold_tree:
-            self.root_node = root_node # hold onto the tree (for testing only)
-        return self.search.best_child(root_node, 0).move
+        return self.search.uct_search(root_state, self.colour)
 
 
     def params(self):

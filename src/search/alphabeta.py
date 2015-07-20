@@ -31,12 +31,7 @@ def alphabeta(state, alpha, beta, depth, player, mm, heuristic, invalid_move):
         new_state = copy.deepcopy(state)
         new_state.do_move(move)
 
-        ## for one ply, one turn games
-        # opponent = state.opponent(player)
-        # ret_val, ret_move = alphabeta(
-        #     new_state, alpha, beta, depth -1, opponent, "max" if mm == "min" else "min", heuristic, invalid_move)
-
-        ## for multi-ply-per-turn games
+        ## for multi-ply-per-turn games (and includes one ply, one turn games)
         new_player = new_state.turn
         if new_player != player: # change view of player
             new_mm = "max" if mm == "min" else "min"

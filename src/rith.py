@@ -17,6 +17,8 @@ from common.arena import Arena
 
 from settings.rith import settings_fulke_1, settings_custom_1# , _setup_fulke_1, _setup_fulke_3
 
+from common.agent import MonteCarloTreeSearchAgent
+
 import datetime
 import os
 
@@ -106,7 +108,7 @@ class Drop(Action):
 DECLARE_VICTORY_MOVE = Action(None, None, type='vict')
 DONE_MOVE = Action(None, None, type='done')
 
-# INVALID_MOVE = Move(None, None, type=None)
+INVALID_MOVE = Action(None, None, type=None)
 INVALID_COORD = (None, None)
 
 # TODO: upper case as these are constants
@@ -739,7 +741,8 @@ class Rith(State):
         #     return self.terminal(self.turn)
         elif move.type == 'done':
             return True
-        raise ValueError('Unrecognized move type: {}'.format(move.type))
+        # raise ValueError('Unrecognized move type: {}'.format(move.type))
+        return False
 
 
     def _is_legal_drop(self, move):
@@ -1886,26 +1889,37 @@ if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser(description='')
     parser.add_argument('--pylab', default='') # remove from python-mode arguments
+    parser.add_argument('--seed', type=int, default=None)
+    parser.add_argument('--output-dir', type=str, default=None)
+    parser.add_argument('--no-verbose', dest='no_verbose', action='store_true')
     parser.add_argument('--path-output', type=str, default=None)
     parser.add_argument('--even', type=str, default='PlayerAgent')
     parser.add_argument('--odd', type=str, default='PlayerAgent')
+    parser.add_argument('--num-games', type=int, default=100)
+    parser.add_argument('--no-arena-output-results', dest='arena_output_results', action='store_true')
+    parser.set_defaults(verbose=False)
     args = parser.parse_args()
 
-    n_iter = 100
-    for _ in range(n_iter):
-        first = eval(args.even)
-        second = eval(args.odd)
-        arena = Arena(
-            Rith(settings=settings_custom_1),
-            first(Player.even),
-            second(Player.odd),
-            )
-        arena.play()
-        if args.path_output is None:
-            if not os.path.exists(RITH_OUT_DIR):
-                os.makedirs(RITH_OUT_DIR)
-            path_output = RITH_OUT_DIR +'arena.' +datetime.datetime.now().strftime('%Y-%m-%dT%H%M%S')
-        else:
-            path_output = args.path_output
-        arena.output_results(path_output)
-        sys.exit(0)
+    if args.output_dir is None:
+        if not os.path.exists(RITH_OUT_DIR):
+            os.makedirs(RITH_OUT_DIR)
+        output_dir = RITH_OUT_DIR
+    else:
+        output_dir = args.output_dir
+
+    kwargs = {
+        'seed': args.seed,
+        'verbose': not args.no_verbose,
+        'num_games': args.num_games,
+        'arena_output_results': not args.arena_output_results,
+        'output_dir': output_dir,
+        }
+
+    first = eval(args.even)
+    second = eval(args.odd)
+    arena = Arena(
+        lambda: Rith(settings=settings_custom_1),
+        lambda: first(Player.even, invalid_move=INVALID_MOVE, seed=args.seed),
+        lambda: second(Player.odd, invalid_move=INVALID_MOVE, seed=args.seed),
+        **kwargs)
+    arena.play()

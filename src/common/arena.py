@@ -4,23 +4,32 @@ import json
 
 class Arena(object):
     """Plays two agents against each other, and tracks the game stats"""
-    def __init__(self, state, agent_first, agent_second, **kwargs):
-        ## these need to have already been constructed
-        self.state = state
-        self.agent_first = agent_first
-        self.agent_second = agent_second
-        self.move_hist = []
+    def __init__(self, state_f, agent_first_f, agent_second_f, **kwargs):
+        ## initalizers (TODO: change to have a reset() function in game state and agent)
+        self.state_f = state_f
+        self.agent_first_f = agent_first_f
+        self.agent_second_f = agent_second_f
         ##
-        self.seed = None
-        self.verbose = True
-        for key, value in kwargs.items():
-            if key == 'seed':
-                self.seed = value
-            elif key == 'verbose':
-                self.verbose = value
+        self.move_hist = []
+        self.seed = kwargs.get('seed', None)
+        self.verbose = kwargs.get('verbose', True)
+        self.num_games = kwargs.get('num_games', 1)
+        self.arena_output_results = kwargs.get('arena_output_results', True)
+        self.output_dir = kwargs.get('output_dir', './')
 
 
     def play(self):
+        for _ in range(self.num_games):
+            self.state = self.state_f()
+            self.agent_first = self.agent_first_f()
+            self.agent_second = self.agent_second_f()
+            self._play_round()
+            if self.arena_output_results:
+                output_path = self.output_dir +'arena.' +datetime.datetime.now().strftime('%Y-%m-%dT%H%M%S')
+                self.output_results(output_path)
+
+
+    def _play_round(self):
         if self.verbose:
             print("Game start: ")
             print(self.state._board)

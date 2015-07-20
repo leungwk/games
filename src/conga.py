@@ -16,14 +16,14 @@ from common.board import Board
 from common.state import State
 
 from search.conga import heuristic_1
-from search.alphabeta import alphabeta
 from common.agent import Agent
 from common.arena import Arena
 
 from common.agent import RandomAgent
 from search.search import one_ply_lookahead_terminal
 
-from search.mcts import UCTNode, MonteCarloTreeSearch
+from common.agent import MonteCarloTreeSearchAgent
+from common.agent import AlphaBetaAgent as AlphaBetaAgentCommon
 
 DATA_DIR = 'data/'
 CONGA_OUT_DIR = DATA_DIR +'out/conga/'
@@ -380,111 +380,50 @@ class PlayerAgent(Agent):
         return move
 
 
-class AlphaBetaAgent(Agent):
-    def __init__(self, colour, **kwargs):
-        super().__init__(colour)
-        self.explore_depth = 4
-        self.seed = None
-        for key, value in kwargs.items():
-            if key == 'explore_depth':
-                self.explore_depth = value
-            elif key == 'invalid_move':
-                self.invalid_move = value
-            elif key == 'seed':
-                self.seed = value
-        self.heuristic = heuristic_1
-        self.alphabeta = alphabeta
-        
-
+class AlphaBetaAgent(AlphaBetaAgentCommon):
     def decision(self, conga):
         ## Perform a one-ply lookahead before alpha-beta proper, a necessary step because alphabeta will not necessarily select the best move for 'max' (if root) given how 'min' is supposed to decide.
         ## For instance, if Max is root, even if there exists a winning move for Max in the next ply, Min would evaluate it as -Inf. As long as other moves exist > -Inf, Max would select those other moves, because the resultant state is evaluated from Min's perspective (which is a losing state). Hence the need for a 1-ply lookahead.
-        ## skips the costlier alphabeta() if successful, but a drag if not
         move_1ply = one_ply_lookahead_terminal(conga, self.colour)
         if move_1ply is not None:
             return move_1ply
-
-        ## alphabeta proper
-        neginf = float('-Inf')
-        posinf = float('Inf')
-        explore_depth = self.explore_depth
-        ret_val, ret_move = self.alphabeta(
-            conga, neginf, posinf, explore_depth, self.colour, "max", self.heuristic, self.invalid_move)
-        if ret_move == self.invalid_move:
-            ## when the search starts with "max", an invalid move returned means that all eventual moves will lead to a terminal state (-inf), because "min" will choose only victory moves
-            ## it might also return something if using ">=" rather than ">" (see the code), but this will create needless moves
-            return random.sample([m for m in conga.get_moves(self.colour)], 1)[0] # at least return something rather than invalid
-        return ret_move
-
-
-    def params(self):
-        res = super().params()
-        res.update({
-            'explore_depth': self.explore_depth,
-            'heuristic': self.heuristic.__name__,
-            'seed': self.seed,
-            })
-        return res
-
-
-class MonteCarloTreeSearchAgent(Agent):
-    """An aheuristic and asymmetric approximation to minimax. 2 player version"""
-    def __init__(self, colour, **kwargs):
-        super().__init__(colour)
-        self.n_iter = int(1e3)
-        self.hold_tree = False
-        self.invalid_move = None
-        for key, value in kwargs.items():
-            if key == 'invalid_move':
-                self.invalid_move = value
-            elif key == 'n_iter':
-                self.n_iter = value
-            elif key == 'hold_tree':
-                self.hold_tree = value
-        self.search = MonteCarloTreeSearch(self.n_iter, self.invalid_move, hold_tree=self.hold_tree)
-
-
-    def decision(self, root_state):
-        return self.search.uct_search(root_state, self.colour)
-
-
-    def params(self):
-        res = super().params()
-        res.update({'n_iter': self.n_iter})
-        return res
+        return super().decision(conga)
 
 
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser(description='')
-    parser.add_argument('--seed', type=int, default=None)
-    parser.add_argument('--path-output', type=str, default=None)
     parser.add_argument('--pylab', default='') # remove from python-mode arguments
+    parser.add_argument('--seed', type=int, default=None)
+    parser.add_argument('--output-dir', type=str, default=None)
     parser.add_argument('--no-verbose', dest='no_verbose', action='store_true')
     parser.add_argument('--black', type=str, default='AlphaBetaAgent')
     parser.add_argument('--white', type=str, default='PlayerAgent')
+    parser.add_argument('--num-games', type=int, default=100)
+    parser.add_argument('--no-arena-output-results', dest='arena_output_results', action='store_true')
     parser.set_defaults(verbose=False)
     args = parser.parse_args()
+
+    if args.output_dir is None:
+        if not os.path.exists(CONGA_OUT_DIR):
+            os.makedirs(CONGA_OUT_DIR)
+        output_dir = CONGA_OUT_DIR
+    else:
+        output_dir = args.output_dir
 
     kwargs = {
         'seed': args.seed,
         'verbose': not args.no_verbose,
+        'num_games': args.num_games,
+        'arena_output_results': not args.arena_output_results,
+        'output_dir': output_dir,
         }
 
-    n_iter = 100
-    for _ in range(n_iter):
-        black = eval(args.black)
-        white = eval(args.white)
-        arena = Arena(
-            Conga(),
-            black(Player.black, invalid_move=INVALID_MOVE, seed=args.seed),
-            white(Player.white, invalid_move=INVALID_MOVE, seed=args.seed),
-            **kwargs)
-        arena.play()
-        if args.path_output is None:
-            if not os.path.exists(CONGA_OUT_DIR):
-                os.makedirs(CONGA_OUT_DIR)
-            path_output = CONGA_OUT_DIR +'arena.' +datetime.datetime.now().strftime('%Y-%m-%dT%H%M%S')
-        else:
-            path_output = args.path_output
-        arena.output_results(path_output)
+    black = eval(args.black)
+    white = eval(args.white)
+    arena = Arena(
+        lambda: Conga(),
+        lambda: black(Player.black, invalid_move=INVALID_MOVE, seed=args.seed, heuristic=heuristic_1),
+        lambda: white(Player.white, invalid_move=INVALID_MOVE, seed=args.seed, heuristic=heuristic_1),
+        **kwargs)
+    arena.play()

@@ -65,9 +65,8 @@ class MonteCarloTreeSearch(object):
     def __init__(self, n_iter, invalid_move, **kwargs):
         self.n_iter = n_iter
         self.invalid_move = invalid_move
-        for key, value in kwargs.items():
-            if key == 'hold_tree':
-                self.hold_tree = value
+        self.seed = kwargs.get('seed', None)
+        self.hold_tree = kwargs.get('hold_tree', False)
     ## assuming only two players, and that one turn is one ply
 
 

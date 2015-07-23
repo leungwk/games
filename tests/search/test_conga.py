@@ -1,4 +1,4 @@
-from games.conga import Move, Cell, Conga, Player, Agent, RandomAgent, AlphaBetaAgent, _invalid_cell
+from games.conga.conga import Move, Cell, Conga, Player, Agent, RandomAgent, AlphaBetaAgent, _invalid_cell
 from games.search.conga import _score_area_count, _score_border_concentration
 
 conga = Conga()

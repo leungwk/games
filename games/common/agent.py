@@ -1,6 +1,6 @@
 import random
-from search.mcts import MonteCarloTreeSearch
-from search.alphabeta import alphabeta
+from games.search.mcts import MonteCarloTreeSearch
+from games.search.alphabeta import alphabeta
 
 class Agent(object):
     """Base class for common properties and methods of an Agent"""

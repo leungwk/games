@@ -1,4 +1,4 @@
-from games.conga import Player, Conga, Move, INVALID_MOVE, AlphaBetaAgent
+from games.conga.conga import Player, Conga, Move, INVALID_MOVE, AlphaBetaAgent
 from games.search.conga import heuristic_1
 import copy
 

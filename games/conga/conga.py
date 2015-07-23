@@ -12,18 +12,18 @@ import datetime
 import sys
 import os
 
-from common.board import Board
-from common.state import State
+from games.common.board import Board
+from games.common.state import State
 
-from search.conga import heuristic_1
-from common.agent import Agent
-from common.arena import Arena
+from games.search.conga import heuristic_1
+from games.common.agent import Agent
+from games.common.arena import Arena
 
-from common.agent import RandomAgent
-from search.search import one_ply_lookahead_terminal
+from games.common.agent import RandomAgent
+from games.search.search import one_ply_lookahead_terminal
 
-from common.agent import MonteCarloTreeSearchAgent
-from common.agent import AlphaBetaAgent as AlphaBetaAgentCommon
+from games.common.agent import MonteCarloTreeSearchAgent
+from games.common.agent import AlphaBetaAgent as AlphaBetaAgentCommon
 
 DATA_DIR = 'data/'
 CONGA_OUT_DIR = DATA_DIR +'out/conga/'

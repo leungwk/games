@@ -1,4 +1,4 @@
-from games.conga import Player, Conga, Move, INVALID_MOVE, MonteCarloTreeSearchAgent
+from games.conga.conga import Player, Conga, Move, INVALID_MOVE, MonteCarloTreeSearchAgent
 
 n_iter = int(1e2)
 conga = Conga()

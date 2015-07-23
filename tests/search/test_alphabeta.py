@@ -1,5 +1,5 @@
-from conga import Player, Conga, Move, INVALID_MOVE, AlphaBetaAgent
-from search.conga import heuristic_1
+from games.conga import Player, Conga, Move, INVALID_MOVE, AlphaBetaAgent
+from games.search.conga import heuristic_1
 import copy
 
 # taken from test_mcts.py
@@ -22,6 +22,7 @@ agent_ab = AlphaBetaAgent(
     Player.black,
     invalid_move=INVALID_MOVE,
     explore_depth=4,
+    heuristic=heuristic_1,
     )
 conga = copy.deepcopy(base_conga)
 move = agent_ab.decision(conga)
@@ -34,6 +35,7 @@ agent_ab = AlphaBetaAgent(
     Player.white,
     invalid_move=INVALID_MOVE,
     explore_depth=4,
+    heuristic=heuristic_1,
     )
 conga = copy.deepcopy(base_conga)
 conga.turn = Player.white

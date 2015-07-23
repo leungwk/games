@@ -1,4 +1,4 @@
-from conga import Player, Conga, Move, INVALID_MOVE, MonteCarloTreeSearchAgent
+from games.conga import Player, Conga, Move, INVALID_MOVE, MonteCarloTreeSearchAgent
 
 n_iter = int(1e2)
 conga = Conga()
@@ -10,8 +10,8 @@ agent_mcts = MonteCarloTreeSearchAgent(
     )
 move = agent_mcts.decision(conga)
 assert conga.is_legal_move(move) # beginning of the game, so there should be at least one legal move
-assert n_iter == agent_mcts.root_node.visits
-assert n_iter == sum([node.visits for node in agent_mcts.root_node.child_nodes])
+assert n_iter == agent_mcts.search.root_node.visits
+assert n_iter == sum([node.visits for node in agent_mcts.search.root_node.child_nodes])
 
 
 

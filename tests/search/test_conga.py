@@ -1,4 +1,5 @@
-from conga import Move, Cell, Conga, Player, Agent, RandomAgent, AlphaBetaAgent, _invalid_cell
+from games.conga import Move, Cell, Conga, Player, Agent, RandomAgent, AlphaBetaAgent, _invalid_cell
+from games.search.conga import _score_area_count, _score_border_concentration
 
 conga = Conga()
 conga._board[(1, 4)] = Cell(num=0, player=Player.none)
@@ -21,7 +22,6 @@ conga._board[(2, 4)] = Cell(num=2, player=Player.white)
 conga._board[(3, 4)] = Cell(num=1, player=Player.black)
 conga._board[(4, 4)] = Cell(num=1, player=Player.white)
 
-from search.conga import _score_area_count, _score_border_concentration
 # agent_ab = AlphaBetaAgent(Player.black)
 # black -white
 assert (4 -6)/10. == _score_area_count(conga, Player.black)

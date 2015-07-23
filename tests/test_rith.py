@@ -1,9 +1,9 @@
-from rith import Player, Piece, PieceName, Rith, RithBoard, Move, Take, Drop
-from rith import NONE_PIECE
-from rith import DECLARE_VICTORY_MOVE, DONE_MOVE
-from rith import Circle, Triangle, Square, Pyramid
-from rith import PlayerAgent
-from common.board import Board
+from games.rith import Player, Piece, PieceName, Rith, RithBoard, Move, Take, Drop
+from games.rith import NONE_PIECE
+from games.rith import DECLARE_VICTORY_MOVE, DONE_MOVE
+from games.rith import Circle, Triangle, Square, Pyramid
+from games.rith import PlayerAgent
+from games.common.board import Board
 from functools import partial
 
 import copy

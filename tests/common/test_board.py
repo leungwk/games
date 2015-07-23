@@ -1,6 +1,6 @@
 from collections import namedtuple
 
-from common.board import Board
+from games.common.board import Board
 
 import copy
 

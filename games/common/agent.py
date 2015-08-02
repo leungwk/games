@@ -1,6 +1,7 @@
 import random
 from games.search.mcts import MonteCarloTreeSearch
-from games.search.alphabeta import alphabeta
+# from games.search.alphabeta import alphabeta
+from games.search.alphabeta import AlphaBetaSearch
 
 class Agent(object):
     """Base class for common properties and methods of an Agent"""
@@ -16,6 +17,12 @@ class Agent(object):
     def params(self):
         """Agent specific params that change its behaviour"""
         return {'colour': str(self.colour)}
+
+
+    def stats(self):
+        """Statistics about Agent behaviour"""
+        return {}
+
 
 
 class RandomAgent(Agent):
@@ -47,27 +54,29 @@ class AlphaBetaAgent(Agent):
         super().__init__(colour)
         self.explore_depth = kwargs.get('explore_depth', 4)
         self.seed = kwargs.get('seed', None)
+        self.debug = kwargs.get('debug', False)
+        self.capacity_transposition_table = kwargs.get('capacity_transposition_table', int(1e6))
         for key, value in kwargs.items():
-            if key == 'invalid_move':
-                self.invalid_move = value
-            elif key == 'heuristic':
+            if key == 'heuristic':
                 self.heuristic = value
-        self.alphabeta = alphabeta
+        self.search = AlphaBetaSearch(
+            colour=self.colour,
+            invalid_move=kwargs.get('invalid_move', None),
+            heuristic=kwargs.get('heuristic', None),
+            explore_depth=self.explore_depth,
+            seed=self.seed,
+            debug=self.debug,
+            capacity_transposition_table=self.capacity_transposition_table,
+            # move_contraction_set=kwargs.get('move_contraction_set', {}),
+            )
+        self._decision_stats = []
 
 
     def decision(self, state):
-        ## one_ply_lookahead_terminal removed, though this might be unwise...
-
-        neginf = float('-Inf')
-        posinf = float('Inf')
-        explore_depth = self.explore_depth
-        ret_val, ret_move = self.alphabeta(
-            state, neginf, posinf, explore_depth, self.colour, "max", self.heuristic, self.invalid_move)
-        if ret_move == self.invalid_move:
-            ## when the search starts with "max", an invalid move returned means that all eventual moves will lead to a terminal state (-inf), because "min" will choose only victory moves
-            ## it might also return something if using ">=" rather than ">" (see the code), but this will create needless moves
-            return random.sample([m for m in state.get_moves(self.colour)], 1)[0] # at least return something rather than invalid
-        return ret_move
+        move_obj = self.search.alphabeta(state)
+        if self.debug:
+            self._decision_stats.append(self.search._stats)
+        return move_obj
 
 
     def params(self):
@@ -76,6 +85,13 @@ class AlphaBetaAgent(Agent):
             'explore_depth': self.explore_depth,
             'heuristic': self.heuristic.__name__,
             'seed': self.seed,
+            })
+        return res
+
+    def stats(self):
+        res = super().stats()
+        res.update({
+            'alphabeta': self._decision_stats,
             })
         return res
 

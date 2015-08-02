@@ -1408,6 +1408,7 @@ assert rith.do_move(DONE_MOVE)
 ## even
 assert not rith.do_move(Drop(2, (3, 1))) # not at backrow
 assert rith.do_move(Drop(1, (3, 1)))
+assert not rith.do_move(Drop(1, (4, 1))) # empty space, but only one drop per turn
 assert len(rith._board.prisoners_held_by_odd) == 0
 assert len(rith._board.prisoners_held_by_even) == 1
 assert rith.do_move(Take((7, 4), (4, 4), Square(64, Player.odd)))

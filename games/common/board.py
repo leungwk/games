@@ -106,6 +106,16 @@ class Board(object):
         return not self.__eq__(other)
 
 
+    def __hash__(self):
+        tot_hash = 0
+        for (col, row) in itertools.product(range(1, self.ncols +1),
+                                            range(1, self.nrows +1)):
+            coord = (col, row)
+            tot_hash += (hash(coord) +hash(self._board[coord]))
+        # tot_hash += hash((self.ncols, self.nrows))
+        return tot_hash
+
+
     def is_valid_coord(self, coord):
         """Check if coord is a valid position"""
         return coord in self._board
@@ -168,7 +178,6 @@ class Board(object):
             yield self[key]
 
 
-    ## for rith.py
     def keys_fan(self, coord_src, deltas):
         """Yield all coords, by each deltas, always starting from src. Skip where OOB"""
         for delta_x, delta_y in deltas:

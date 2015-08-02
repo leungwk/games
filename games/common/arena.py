@@ -76,6 +76,8 @@ class Arena(object):
             'agent_2': self.agent_second.__class__.__name__,
             'params.agent_1': self.agent_first.params(),
             'params.agent_2': self.agent_second.params(),
+            'stats.agent_1': self.agent_first.stats(),
+            'stats.agent_2': self.agent_second.stats(),
             'winner': str(self.winner),
             'num_ply': len(self.move_hist),
             'move_hist': [(str(pla), str(mov)) for pla, mov in self.move_hist],

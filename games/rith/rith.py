@@ -3,24 +3,30 @@ Define the rithmomachia game objects, agents, logic, and state.
 """
 
 from enum import Enum
-from games.common.board import Board
-from games.common.state import State
 from functools import partial
 import sys
+import datetime
+import os
+import random
 
 import itertools
 from itertools import islice, combinations, zip_longest
 from collections import defaultdict
+
+from games.common.board import Board
+from games.common.state import State
 
 from games.common.agent import Agent, RandomAgent
 from games.common.arena import Arena
 
 from games.settings.rith import settings_fulke_1, settings_custom_1# , _setup_fulke_1, _setup_fulke_3
 
-from games.common.agent import MonteCarloTreeSearchAgent
+from games.search.search import one_ply_lookahead_terminal
+from games.common.agent import MonteCarloTreeSearchAgent, AlphaBetaAgent as AlphaBetaAgentCommon
 
-import datetime
-import os
+from games.search.rith.rith import heuristic_1
+
+# from games.util.board import Coord
 
 DATA_DIR = 'data/'
 RITH_OUT_DIR = DATA_DIR +'out/rith/'
@@ -43,6 +49,27 @@ class RithBoard(Board):
         super().__init__(nrows, ncols, constructor)
         self.prisoners_held_by_even = []
         self.prisoners_held_by_odd = []
+
+
+    def __eq__(self, other):
+        res = super().__eq__(other)
+        if not res:
+            return False
+        if set(self.prisoners_held_by_even) != set(other.prisoners_held_by_even):
+            return False
+        if set(self.prisoners_held_by_odd) != set(other.prisoners_held_by_odd):
+            return False
+        return True
+
+
+    def __ne__(self, other):
+        return self.__eq__(other)
+
+
+    def __hash__(self):
+        super_hash = super().__hash__()
+        super_hash += (hash(tuple(self.prisoners_held_by_even)) +hash(tuple(self.prisoners_held_by_odd)))
+        return super_hash
 
 
     def __str__(self):
@@ -153,8 +180,21 @@ class Rith(State):
 
         ## turn tracking
         self.turn = Player.even # to answer, "whose turn is it?"
+        self.num_ply = 0
         self._has_moved = False # marching or flying or dropping (allow only one per turn)
         self._victory_declared = False # should only be changed in do_move
+
+
+    def __hash__(self):
+        return hash((self.turn, self._has_moved, self._victory_declared, self._board))
+
+
+    def __eq__(self, other):
+        return (self._board == other._board) and (self._has_moved == other._has_moved) and (self._victory_declared == other._victory_declared) and (self.turn == other.turn)
+
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
 
 
     ## TODO: these should be moved to some data path
@@ -554,7 +594,7 @@ class Rith(State):
                     continue
                 for coord_delta in p_dest.marches:
                     dx, dy = coord_delta
-                    coord_new = (coord_dest[0] +dx, coord_dest[0] +dy)
+                    coord_new = (coord_dest[0] +dx, coord_dest[1] +dy)
                     if not self._board.is_valid_coord(coord_new): # ie. blocked by edge of board
                         continue
 
@@ -1202,6 +1242,7 @@ class Rith(State):
         if move.type == 'done':
             self.turn = Player.opponent(self.turn)
             self._has_moved = False
+            self.num_ply += 1
             return True
 
         ## assuming move was issued by self.turn
@@ -1219,6 +1260,7 @@ class Rith(State):
             # if piece_dest != NONE_PIECE:
             #     raise Exception("move input mis-specified but is_legal_move(move) did not catch it. This is a bug") # TODO: remove?
             self._has_moved = True
+            self.num_ply += 1
             return True
 
         if move.type == 'take':
@@ -1249,6 +1291,7 @@ class Rith(State):
                 piece_dest.colour = self.turn
                 prisoners.append(piece_dest)
                 self._board[coord_dest] = NONE_PIECE
+            self.num_ply += 1
             return True
 
         if move.type == 'drop':
@@ -1265,6 +1308,9 @@ class Rith(State):
             piece.colour = self.turn # just in case
             self._board[move.dest] = piece
             del prisoners[idx]
+            self._has_moved = True
+            ## though, I did not see a rule about only 1 drop per turn
+            self.num_ply += 1
             return True
 
         if move.type == 'vict':
@@ -1272,6 +1318,7 @@ class Rith(State):
             res = self.terminal(self.turn)
             if not res:
                 self._victory_declared = False
+            self.num_ply += 1
             return True
 
         return None # unrecognized
@@ -1352,18 +1399,20 @@ class Rith(State):
         ## done
         acc_moves.add(DONE_MOVE)
 
-        return acc_moves
+        return list(acc_moves)
 
 
 class PlayerAgent(Agent):
     """"""
     help_prompt = """Examples of valid input:
-move (8, 13) (7, 10)
-take (7, 5) (7, 10) Triangle(36, Player.odd)
-take (7, 5) (7, 10) T36_
+move (8, 4) (7, 7)
+take (7, 7) (3, 11) Circle(3, Player.odd)
+take (7, 7) (3, 11) C3_
 drop 1 (1, 1)
 vict
 done
+exit
+quit
 """
 
     def _parse_cmd(self, cmd):
@@ -1466,6 +1515,34 @@ done
         return move_obj
 
 
+class AlphaBetaAgent(AlphaBetaAgentCommon):
+    def decision(self, rith):
+        ## because of the way alphabeta searches, it jumps immediately to the opponent's perspective
+        ## under Fulke 1, if alphabeta is Even, after (8,4),(7,7), it will not take both C3_ and T90_. The resultant moves after the first take are DONE_MOVE and one of the Takes, and it does not choose the Take move, because of the way it searches
+        moves = rith.get_moves(self.colour)
+        num_moves = {k: 0 for k in ['done', 'vict', 'drop', 'take', 'move']}
+        take_moves = []
+        for move in moves:
+            if move == DECLARE_VICTORY_MOVE:
+                return move
+            elif move.type == 'move':
+                num_moves['move'] += 1
+            elif move.type == 'take':
+                num_moves['take'] += 1
+                take_moves.append(move)
+            elif move.type == 'drop':
+                num_moves['drop'] += 1
+            elif move == DONE_MOVE:
+                num_moves['done'] += 1
+        if (num_moves['move'] == 0) and (num_moves['take'] > 0):
+            ## make it greedy
+            return random.sample(take_moves, 1)[0]
+        if sum(num_moves.values()) == 1:
+            ## don't bother searching
+            return next(iter(moves))
+        return super().decision(rith)
+
+
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser(description='')
@@ -1473,6 +1550,8 @@ if __name__ == '__main__':
     parser.add_argument('--seed', type=int, default=None)
     parser.add_argument('--output-dir', type=str, default=None)
     parser.add_argument('--no-verbose', dest='no_verbose', action='store_true')
+    parser.add_argument('--debug', dest='debug', action='store_true')
+    parser.add_argument('--explore-depth', type=int, default=3)
     parser.add_argument('--path-output', type=str, default=None)
     parser.add_argument('--even', type=str, default='PlayerAgent')
     parser.add_argument('--odd', type=str, default='PlayerAgent')
@@ -1496,11 +1575,20 @@ if __name__ == '__main__':
         'output_dir': output_dir,
         }
 
+    agent_kwargs = {
+        'seed': args.seed,
+        'invalid_move': INVALID_MOVE,
+        'heuristic': heuristic_1,
+        'debug': args.debug,
+        'explore_depth': args.explore_depth,
+        'capacity_transposition_table': int(1e5),
+        }
+
     first = eval(args.even)
     second = eval(args.odd)
     arena = Arena(
         lambda: Rith(settings=settings_custom_1),
-        lambda: first(Player.even, invalid_move=INVALID_MOVE, seed=args.seed),
-        lambda: second(Player.odd, invalid_move=INVALID_MOVE, seed=args.seed),
+        lambda: first(Player.even, **agent_kwargs),
+        lambda: second(Player.odd, **agent_kwargs),
         **kwargs)
     arena.play()

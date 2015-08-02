@@ -54,6 +54,10 @@ class Cell(object):
         return 'Cell(num={num}, player={player})'.format(num=self.num, player=repr(self.player))
 
 
+    def __hash__(self):
+        return hash((self.num, self.player))
+
+
 class Player(Enum):
     """Define the allowed players as a type"""
 
@@ -130,6 +134,19 @@ class Conga(State):
         self._board[(1, 4)] = Cell(num=10, player=Player.black)
         self._board[(4, 1)] = Cell(num=10, player=Player.white)
         self.turn = Player.black
+        self.num_ply = 0
+
+
+    def __hash__(self):
+        return hash((self.turn, self._board))
+
+
+    def __eq__(self, other):
+        return (self._board == other._board) and (self.turn == other.turn)
+
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
 
 
     def is_legal_move(self, move):
@@ -261,6 +278,7 @@ class Conga(State):
         cell_src.num = 0
         cell_src.player = Player.none
         self.turn = self.opponent(self.turn)
+        self.num_ply += 1
 
 
     def opponent(self, player):
@@ -397,6 +415,8 @@ if __name__ == '__main__':
     parser.add_argument('--seed', type=int, default=None)
     parser.add_argument('--output-dir', type=str, default=None)
     parser.add_argument('--no-verbose', dest='no_verbose', action='store_true')
+    parser.add_argument('--debug', dest='debug', action='store_true')
+    parser.add_argument('--explore-depth', type=int, default=4)
     parser.add_argument('--black', type=str, default='AlphaBetaAgent')
     parser.add_argument('--white', type=str, default='PlayerAgent')
     parser.add_argument('--num-games', type=int, default=100)
@@ -419,11 +439,20 @@ if __name__ == '__main__':
         'output_dir': output_dir,
         }
 
+    agent_kwargs = {
+        'seed': args.seed,
+        'invalid_move': INVALID_MOVE,
+        'heuristic': heuristic_1,
+        'debug': args.debug,
+        'explore_depth': args.explore_depth,
+        'capacity_transposition_table': int(1e6),
+        }
+
     black = eval(args.black)
     white = eval(args.white)
     arena = Arena(
         lambda: Conga(),
-        lambda: black(Player.black, invalid_move=INVALID_MOVE, seed=args.seed, heuristic=heuristic_1),
-        lambda: white(Player.white, invalid_move=INVALID_MOVE, seed=args.seed, heuristic=heuristic_1),
+        lambda: black(Player.black, **agent_kwargs),
+        lambda: white(Player.white, **agent_kwargs),
         **kwargs)
     arena.play()

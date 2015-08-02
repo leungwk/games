@@ -150,6 +150,26 @@ class Piece(object):
         return [self]
 
 
+class NonePiece(Piece):
+    def __init__(self):
+        super().__init__(None, PieceName.none, Player.none, set([]), set([]))
+
+    def __str__(self):
+        return '  '
+
+
+class OOBPiece(Piece):
+    """Useful as a fill value for pattern matching"""
+    ## TODO: distinguish it from garbage input to board[]
+    def __init__(self):
+        super().__init__(None, PieceName.invalid, Player.invalid, set([]), set([]))
+
+    def __str__(self):
+        return 'OOB'
+
+NONE_PIECE = NonePiece()
+OOB_PIECE = OOBPiece()
+
 class Circle(Piece):
     def __init__(self, num, colour):
         super().__init__(num, PieceName.circle, colour, marches_circle, flying_circle)
@@ -244,13 +264,3 @@ class Pyramid(Piece):
             return NONE_PIECE
         tot = sum([p.num for p in acc])
         return Pyramid(tot, pyramid.colour, pieces=acc)
-
-
-class NonePiece(Piece):
-    def __init__(self):
-        super().__init__(None, '_', Player.none, set([]), set([]))
-
-    def __str__(self):
-        return '  '
-
-NONE_PIECE = NonePiece()

@@ -1,0 +1,109 @@
+* setup
+
+On a 4x4 grid, place 10 black seeds at the top-left corner, and 10 white
+seeds at the bottom-right corner, as such:
+#+begin_example
+	  1   2   3   4
+	+---+---+---+---+
+4	|10B|   |   |   |
+	+---+---+---+---+
+3	|   |   |   |   |
+	+---+---+---+---+
+2	|   |   |   |   |
+	+---+---+---+---+
+1	|   |   |   |10W|
+	+---+---+---+---+
+	  1   2   3   4
+#+end_example
+Black moves first, and players alternate turns.
+
+* movement (sowing)
+
+To move (or /sow/), select a hole containing one's seeds. In a
+horizontal, vertical, or diagonal direction, drop 1 seed into the
+first hole, 2 seeds into the second, 3 seeds into the next, and so
+on, until
+    there are fewer than the indicated number of seeds, or
+    one's sowing has reached the edge of the board, or
+    one has encountered a hole containing the opponent's seeds.
+In the hole just prior to any of these three conditions, drop in all
+remaining seeds.
+
+One may only sow seeds into an empty hole, or a hole containing one's
+own seeds.
+
+* victory
+** line victory
+
+The objective in conga is to form a horizontal, vertical, or diagonal
+line containing the same number of seeds. The line may use the
+opponent's seeds, as such:
+#+begin_example
+	  1   2   3   4
+	+---+---+---+---+
+4	|   | 1W|   | 2W|
+	+---+---+---+---+
+3	|   | 1W|   |   |
+	+---+---+---+---+
+2	| 1B|   | 1W| 1W|
+	+---+---+---+---+
+1	|   | 2W| 2W| 9B|
+	+---+---+---+---+
+	  1   2   3   4
+
+turn: W
+
+	  1   2   3   4
+	+---+---+---+---+
+4	|   | 1W|   |   |
+	+---+---+---+---+
+3	|   | 1W| 1W|   |
+	+---+---+---+---+
+2	| 1B| 1W| 1W| 1W|
+	+---+---+---+---+
+1	|   | 2W| 2W| 9B|
+	+---+---+---+---+
+	  1   2   3   4
+
+turn: B
+
+winner: W
+#+end_example
+Because the horizontal line of 1s was formed on white's turn, white is
+the winner.
+
+** blocking the opponent's moves
+
+The second victory condition occurs when the opponent can no longer move:
+#+begin_example
+	  1   2   3   4
+	+---+---+---+---+
+4	|   |   |   |   |
+	+---+---+---+---+
+3	|   |   |   | 4W|
+	+---+---+---+---+
+2	| 1W| 1W| 2W| 1W|
+	+---+---+---+---+
+1	| 3B| 1W| 7B|   |
+	+---+---+---+---+
+	  1   2   3   4
+
+turn: W
+
+	  1   2   3   4
+	+---+---+---+---+
+4	|   |   |   |   |
+	+---+---+---+---+
+3	|   |   |   |   |
+	+---+---+---+---+
+2	| 1W| 1W| 2W| 2W|
+	+---+---+---+---+
+1	| 3B| 1W| 7B| 3W|
+	+---+---+---+---+
+	  1   2   3   4
+
+turn: B
+
+winner: W
+#+end_example
+It is black's turn, and black has no more moves, therefore black loses.

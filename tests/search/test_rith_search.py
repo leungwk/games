@@ -3,6 +3,7 @@ from games.rith.rith import Rith, RithBoard
 from games.rith.piece import Circle, Triangle, Square, Pyramid, NONE_PIECE, OOB_PIECE
 
 from games.search.rith.siege import PlusShape, EcksShape, _pieces_movable
+# TODO: BoxShape
 
 rith = Rith(settings={'board_setup': 'fulke_1'})
 # rith._board = RithBoard(16, 8) # blank it

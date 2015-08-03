@@ -131,7 +131,7 @@ class AlphaBetaSearch(object):
         posinf = float('Inf')
         explore_depth = self.explore_depth
         _, ret_move = self._alphabeta(
-            state, neginf, posinf, explore_depth, "max", self.colour)
+            state, neginf, posinf, explore_depth, "max", "min", self.colour)
         if ret_move == self.invalid_move:
             ## when the search starts with "max", an invalid move returned means that all eventual moves will lead to a terminal state (-inf), because "min" will choose only victory moves
             ## it might also return something if using ">=" rather than ">" (see the code), but this will create needless moves
@@ -144,7 +144,7 @@ class AlphaBetaSearch(object):
         return ret_move
 
 
-    def _alphabeta(self, state, alpha, beta, depth, mm, player):
+    def _alphabeta(self, state, alpha, beta, depth, mm, parent_mm, player):
         ## depth: depth remaining till a leaf
         if state.terminal(player) or depth == 0:
             return (self.heuristic(state, player), self.invalid_move) # invalid move
@@ -174,12 +174,12 @@ class AlphaBetaSearch(object):
             ## wrap in a transposition table so to hopefully cache some results, and thus have another method of pruning
             if not self.enabled_transposition_table:
                 ret_val, _ = self._alphabeta(
-                    new_state, alpha, beta, depth -1, new_mm, new_player)
+                    new_state, alpha, beta, depth -1, new_mm, mm, new_player)
             else:
                 tab_val = self.transposition_table.get((depth, new_state), None)
                 if tab_val is None:
                     ret_val, _ = self._alphabeta(
-                        new_state, alpha, beta, depth -1, new_mm, new_player)
+                        new_state, alpha, beta, depth -1, new_mm, mm, new_player)
                     #
                     self.transposition_table[(depth, new_state)] = ret_val
                 else:
@@ -190,13 +190,19 @@ class AlphaBetaSearch(object):
                     curr_move = move
                 alpha = max(alpha, ret_val)
                 if alpha >= beta: # value of adversery has now been exceeded, so no need to search further
-                    return (beta, curr_move) # pruning
+                    if mm != parent_mm:
+                        return (beta, curr_move) # pruning
+                    else:
+                        return (alpha, curr_move) # so that it propagates all the way up to the switch in mm, ignoring the remaning unexplored branches below the switch
             else: # is "min"
                 if ret_val < beta: # '<=' causes wrong move to be selected
                     curr_move = move
                 beta = min(beta, ret_val)
                 if beta <= alpha:
-                    return (alpha, curr_move) # pruning
+                    if mm != parent_mm:
+                        return (alpha, curr_move) # pruning
+                    else:
+                        return (beta, curr_move)
 
         if mm == "max":
             return (alpha, curr_move)

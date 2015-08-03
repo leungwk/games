@@ -37,6 +37,8 @@ from games.rith.move import deltas_cross, deltas_xshape, deltas_line_adjacency, 
 from games.rith.piece import Player, PieceName
 from games.rith.piece import Circle, Triangle, Square, Pyramid, NONE_PIECE
 
+from games.settings.rith import _setup_fulke_1, _setup_fulke_3
+
 INVALID_COORD = (None, None)
 
 class ContainerPieces(object):
@@ -111,50 +113,15 @@ class RithBoard(Board):
                 else:
                     str_cell = '|' +str(_pad(str(piece)))
                 acc_row += str_cell
-            acc_tot += '\t' +'+-----'*8 +'+\n'
+            acc_tot += '\t' +'+-----'*self.ncols +'+\n'
             acc_tot += acc_row +'|\n'
-        acc_tot += '\t' +'+-----'*8 +'+\n'
+        acc_tot += '\t' +'+-----'*self.ncols +'+\n'
         acc_tot += heading +'\n\n' # headings
         acc_tot += 'P (tot {}) = '.format(pyramid_even_tot) +' '.join(pyramid_even) +'\n'
         acc_tot += 'b (tot {}) = '.format(pyramid_odd_tot) +' '.join(pyramid_odd) +'\n'
         acc_tot += 'Even\'s prisoners: ' +' '.join([str(piece) for piece in self.prisoners_held_by_even]) +'\n'
         acc_tot += 'Odd\'s prisoners: ' +' '.join([str(piece) for piece in self.prisoners_held_by_odd]) +'\n'
         return acc_tot
-
-
-    # def __str_2__(self):
-    #     acc_tot = ''
-    #     pyramid_white = ''
-    #     pyramid_black = ''
-    #     heading = '\t' +'\t'.join([str(row) for row in range(1, self.ncols +1)])
-    #     acc_tot += heading +'\n' # headings
-    #     for col in range(self.nrows, 0, -1):
-    #         acc_row = '{}\t'.format(col)
-    #         for row in range(1, self.ncols +1):
-    #             coord = (row, col)
-    #             piece = self._board[coord]
-    #             if piece.name == PieceName.pyramid:
-    #                 if piece.colour == Player.even:
-    #                     str_cell = 'P '
-    #                     for piece in piece.pieces:
-    #                         pyramid_white += str(piece) +' '
-    #                     pyramid_white += '(tot {})'.format(piece.num)
-    #                 elif piece.colour == Player.odd:
-    #                     str_cell = 'b ' # inverse of 'P'
-    #                     for piece in piece.pieces:
-    #                         pyramid_black += str(piece) +' '
-    #                     pyramid_black += '(tot {})'.format(piece.num)
-    #             else:
-    #                 str_cell = str(piece)
-    #             acc_row += str_cell +'\t' ##
-    #         acc_tot += acc_row +'\n'
-    #     acc_tot += heading +'\n\n' # headings
-    #     acc_tot += 'P = ' +pyramid_white +'\n'
-    #     acc_tot += 'b = ' +pyramid_black +'\n'
-    #     acc_tot += 'White\'s prisoners: ' +' '.join([str(piece) for piece in self.white_prisoners]) +'\n'
-    #     acc_tot += 'Black\'s prisoners: ' +' '.join([str(piece) for piece in self.black_prisoners]) +'\n'
-    #     return acc_tot
-
 
 
 class Rith(State):
@@ -172,9 +139,9 @@ class Rith(State):
 
         self._board = RithBoard(16, 8) # blank board
         if self.settings.get('board_setup', 'fulke_1') == 'fulke_1':
-            self._setup_fulke_1()
+            _setup_fulke_1(self)
         elif self.settings.get('board_setup', 'fulke_1') == 'fulke_3':
-            self._setup_fulke_3()
+            _setup_fulke_3(self)
         else:
             raise ValueError('no other initial setups supported (yet)')
 
@@ -190,162 +157,14 @@ class Rith(State):
 
 
     def __eq__(self, other):
-        return (self._board == other._board) and (self._has_moved == other._has_moved) and (self._victory_declared == other._victory_declared) and (self.turn == other.turn)
+        return (self._has_moved == other._has_moved) and \
+          (self.turn == other.turn) and \
+          (self._victory_declared == other._victory_declared) and \
+          (self._board == other._board)
 
 
     def __ne__(self, other):
         return not self.__eq__(other)
-
-
-    ## TODO: these should be moved to some data path
-    def _setup_fulke_1(self):
-        """Following /Fulke/ (1563), first kind of play (and board layout)"""
-        ## white
-        ## row 3
-        self._board[(1, 3)] = Square(289, Player.even)
-        self._board[(2, 3)] = Square(169, Player.even)
-        self._board[(7, 3)] = Square(81, Player.even)
-        self._board[(8, 3)] = Square(25, Player.even)
-        ## row 4
-        self._board[(1, 4)] = Square(153, Player.even)
-        self._board[(2, 4)] = Pyramid(91, Player.even, pieces=[
-            Square(36, Player.even),
-            Square(25, Player.even),
-            Triangle(16, Player.even),
-            Triangle(9, Player.even),
-            Circle(4, Player.even),
-            Circle(1, Player.even),
-            ])
-        self._board[(3, 4)] = Triangle(49, Player.even)
-        self._board[(4, 4)] = Triangle(42, Player.even)
-        self._board[(5, 4)] = Triangle(20, Player.even)
-        self._board[(6, 4)] = Triangle(25, Player.even)
-        self._board[(7, 4)] = Square(45, Player.even)
-        self._board[(8, 4)] = Square(15, Player.even)
-        ## row 5
-        self._board[(1, 5)] = Triangle(81, Player.even)
-        self._board[(2, 5)] = Triangle(72, Player.even)
-        self._board[(3, 5)] = Circle(64, Player.even)
-        self._board[(4, 5)] = Circle(36, Player.even)
-        self._board[(5, 5)] = Circle(16, Player.even)
-        self._board[(6, 5)] = Circle(4, Player.even)
-        self._board[(7, 5)] = Triangle(6, Player.even)
-        self._board[(8, 5)] = Triangle(9, Player.even)
-        ## row 6
-        self._board[(3, 6)] = Circle(8, Player.even)
-        self._board[(4, 6)] = Circle(6, Player.even)
-        self._board[(5, 6)] = Circle(4, Player.even)
-        self._board[(6, 6)] = Circle(2, Player.even)
-        ## black
-        ## row 14
-        self._board[(1, 14)] = Square(49, Player.odd)
-        self._board[(2, 14)] = Square(121, Player.odd)
-        self._board[(7, 14)] = Square(225, Player.odd)
-        self._board[(8, 14)] = Square(361, Player.odd)
-        ## row 13
-        self._board[(1, 13)] = Square(28, Player.odd)
-        self._board[(2, 13)] = Square(66, Player.odd)
-        self._board[(3, 13)] = Triangle(30, Player.odd)
-        self._board[(4, 13)] = Triangle(36, Player.odd)
-        self._board[(5, 13)] = Triangle(56, Player.odd)
-        self._board[(6, 13)] = Triangle(64, Player.odd)
-        self._board[(7, 13)] = Square(120, Player.odd)
-        self._board[(8, 13)] = Pyramid(190, Player.odd, pieces=[
-            Square(64, Player.odd),
-            Square(49, Player.odd),
-            Triangle(36, Player.odd),
-            Triangle(25, Player.odd),
-            Circle(16, Player.odd),
-            ])
-        ## row 12
-        self._board[(1, 12)] = Triangle(16, Player.odd)
-        self._board[(2, 12)] = Triangle(12, Player.odd)
-        self._board[(3, 12)] = Circle(9, Player.odd)
-        self._board[(4, 12)] = Circle(25, Player.odd)
-        self._board[(5, 12)] = Circle(49, Player.odd)
-        self._board[(6, 12)] = Circle(81, Player.odd)
-        self._board[(7, 12)] = Triangle(90, Player.odd)
-        self._board[(8, 12)] = Triangle(100, Player.odd)
-        ## row 11
-        self._board[(3, 11)] = Circle(3, Player.odd)
-        self._board[(4, 11)] = Circle(5, Player.odd)
-        self._board[(5, 11)] = Circle(7, Player.odd)
-        self._board[(6, 11)] = Circle(9, Player.odd)
-
-
-    def _setup_fulke_3(self):
-        """Following /Fulke/ (1563), third kind of play (and board layout). Is Fulke 1 but shifted back by 2 rows"""
-        ## white
-        ## row 1
-        self._board[(1, 1)] = Square(289, Player.even)
-        self._board[(2, 1)] = Square(169, Player.even)
-        self._board[(7, 1)] = Square(81, Player.even)
-        self._board[(8, 1)] = Square(25, Player.even)
-        ## row 2
-        self._board[(1, 2)] = Square(153, Player.even)
-        self._board[(2, 2)] = Pyramid(91, Player.even, pieces=[
-            Square(36, Player.even),
-            Square(25, Player.even),
-            Triangle(16, Player.even),
-            Triangle(9, Player.even),
-            Circle(4, Player.even),
-            Circle(1, Player.even),
-            ])
-        self._board[(3, 2)] = Triangle(49, Player.even)
-        self._board[(4, 2)] = Triangle(42, Player.even)
-        self._board[(5, 2)] = Triangle(20, Player.even)
-        self._board[(6, 2)] = Triangle(25, Player.even)
-        self._board[(7, 2)] = Square(45, Player.even)
-        self._board[(8, 2)] = Square(15, Player.even)
-        ## row 3
-        self._board[(1, 3)] = Triangle(81, Player.even)
-        self._board[(2, 3)] = Triangle(72, Player.even)
-        self._board[(3, 3)] = Circle(64, Player.even)
-        self._board[(4, 3)] = Circle(36, Player.even)
-        self._board[(5, 3)] = Circle(16, Player.even)
-        self._board[(6, 3)] = Circle(4, Player.even)
-        self._board[(7, 3)] = Triangle(6, Player.even)
-        self._board[(8, 3)] = Triangle(9, Player.even)
-        ## row 4
-        self._board[(3, 4)] = Circle(8, Player.even)
-        self._board[(4, 4)] = Circle(6, Player.even)
-        self._board[(5, 4)] = Circle(4, Player.even)
-        self._board[(6, 4)] = Circle(2, Player.even)
-        ## black
-        ## row 16
-        self._board[(1, 16)] = Square(49, Player.odd)
-        self._board[(2, 16)] = Square(121, Player.odd)
-        self._board[(7, 16)] = Square(225, Player.odd)
-        self._board[(8, 16)] = Square(361, Player.odd)
-        ## row 15
-        self._board[(1, 15)] = Square(28, Player.odd)
-        self._board[(2, 15)] = Square(66, Player.odd)
-        self._board[(3, 15)] = Triangle(30, Player.odd)
-        self._board[(4, 15)] = Triangle(36, Player.odd)
-        self._board[(5, 15)] = Triangle(56, Player.odd)
-        self._board[(6, 15)] = Triangle(64, Player.odd)
-        self._board[(7, 15)] = Square(120, Player.odd)
-        self._board[(8, 15)] = Pyramid(190, Player.odd, pieces=[
-            Square(64, Player.odd),
-            Square(49, Player.odd),
-            Triangle(36, Player.odd),
-            Triangle(25, Player.odd),
-            Circle(16, Player.odd),
-            ])
-        ## row 14
-        self._board[(1, 14)] = Triangle(16, Player.odd)
-        self._board[(2, 14)] = Triangle(12, Player.odd)
-        self._board[(3, 14)] = Circle(9, Player.odd)
-        self._board[(4, 14)] = Circle(25, Player.odd)
-        self._board[(5, 14)] = Circle(49, Player.odd)
-        self._board[(6, 14)] = Circle(81, Player.odd)
-        self._board[(7, 14)] = Triangle(90, Player.odd)
-        self._board[(8, 14)] = Triangle(100, Player.odd)
-        ## row 13
-        self._board[(3, 13)] = Circle(3, Player.odd)
-        self._board[(4, 13)] = Circle(5, Player.odd)
-        self._board[(5, 13)] = Circle(7, Player.odd)
-        self._board[(6, 13)] = Circle(9, Player.odd)
 
 
     def is_legal_move(self, move):

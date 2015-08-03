@@ -18,3 +18,6 @@ test_rith:
 
 test_rith_play:
 	PYTHONPATH=$(GAMES_MODULE_DIR):${PYTHONPATH} python3 $(GAMES_MODULE_DIR)/rith/rith.py
+
+test_profile_rith_ab:
+	PYTHONPATH=$(GAMES_MODULE_DIR):${PYTHONPATH} pprofile ./profile/profile_rith_ab.py > $(DATA_DIR)/profile/alphabeta_rith.out

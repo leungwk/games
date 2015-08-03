@@ -1,4 +1,4 @@
-from games.search.rith.siege import _score_siege_surrounded
+from games.search.rith.siege import _score_siege_surrounded, _score_siege_surrounded_2, BoxShape
 from games.rith.piece import NONE_PIECE, Player, PieceName
 from games.rith.move import DONE_MOVE, DECLARE_VICTORY_MOVE
 
@@ -110,11 +110,11 @@ def heuristic_1(rith, player):
 
     ## siegeness; [-1,1]
     cnt_siegeness = {k: 0 for k in ['player', 'opponent']}
-    # cnt_players = {k: 0 for k in ['player', 'opponent']}
     for coord_cur, piece_cur in rith._board.items():
         if piece_cur == NONE_PIECE:
             continue
-        siegeness = _score_siege_surrounded(rith, coord_cur) # in [0,1]
+        # siegeness = _score_siege_surrounded(rith, coord_cur) # in [0,1] # too slow
+        siegeness = _score_siege_surrounded_2(rith, coord_cur) # in [0,1]
         whose_piece_cur = 'player' if piece_cur.colour == player else 'opponent'
         cnt_siegeness[whose_piece_cur] += siegeness
 

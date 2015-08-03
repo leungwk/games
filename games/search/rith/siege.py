@@ -71,6 +71,51 @@ class EcksShape(object):
             yield direction.coord, direction.piece
 
 
+class BoxShape(object):
+    def __init__(self, board, coord):
+        self.start = CoordPiece(coord, board.get(coord, OOB_PIECE))
+
+        new_coord = Coord.add(coord, (+1, 0))
+        self.east = CoordPiece(new_coord, board.get(new_coord, OOB_PIECE))
+
+        new_coord = Coord.add(coord, (0, -1))
+        self.south = CoordPiece(new_coord, board.get(new_coord, OOB_PIECE))
+
+        new_coord = Coord.add(coord, (-1, 0))
+        self.west = CoordPiece(new_coord, board.get(new_coord, OOB_PIECE))
+
+        new_coord = Coord.add(coord, (0, +1))
+        self.north = CoordPiece(new_coord, board.get(new_coord, OOB_PIECE))
+
+        new_coord = Coord.add(coord, (+1, +1))
+        self.north_east = CoordPiece(new_coord, board.get(new_coord, OOB_PIECE))
+
+        new_coord = Coord.add(coord, (+1, -1))
+        self.south_east = CoordPiece(new_coord, board.get(new_coord, OOB_PIECE))
+
+        new_coord = Coord.add(coord, (-1, -1))
+        self.south_west = CoordPiece(new_coord, board.get(new_coord, OOB_PIECE))
+
+        new_coord = Coord.add(coord, (-1, +1))
+        self.north_west = CoordPiece(new_coord, board.get(new_coord, OOB_PIECE))
+
+
+    def keys_wind(self):
+        for direction in [self.east, self.south_east, self.south, self.south_west, self.west, self.north_west, self.north, self.north_east]:
+            yield direction.coord
+
+
+    def items_wind(self):
+        for direction in [self.east, self.south_east, self.south, self.south_west, self.west, self.north_west, self.north, self.north_east]:
+            yield direction.coord, direction.piece
+
+
+    def values_wind(self):
+        for direction in [self.east, self.south_east, self.south, self.south_west, self.west, self.north_west, self.north, self.north_east]:
+            yield direction.piece
+
+
+
 def _pieces_movable(rith, coord_dest, allow_unoccupied=False):
     ## find all pieces moveable into coord_dest
     ## allow_unoccupied: consider what if coord_dest where unoccupied
@@ -127,6 +172,38 @@ def _bound(low, val, high):
     elif val > high:
         return high
     return val
+
+
+def _score_siege_surrounded_2(rith, coord_dest):
+    ## because it is a /heuristic/, not metric, and I want to tradeoff accuracy for speed
+    if not rith.settings.get('taking.siege.surrounded', False):
+        return None
+
+    piece_dest = rith._board.get(coord_dest, OOB_PIECE)
+    if piece_dest in [OOB_PIECE, NONE_PIECE]:
+        return None
+
+    player = piece_dest.colour # ie. use player's perspective of the piece being sieged
+    opponent = Player.opponent(player)
+
+    siegeness = 0
+    MAX_SIEGENESS = 100
+    shape_ecks = EcksShape(rith._board, coord_dest)
+    shape_plus = PlusShape(rith._board, coord_dest)
+    for shape in [shape_plus, shape_ecks]:
+        stats = {k: 0 for k in ['oob', 'none', 'player', 'opponent']}
+        for coord_wind, piece_wind in shape.items_wind():
+            if piece_wind == OOB_PIECE:
+                stats['oob'] += 1
+            elif piece_wind == NONE_PIECE:
+                stats['none'] += 1
+            elif piece_wind.colour == player:
+                stats['player'] += 1
+            elif piece_wind.colour == opponent:
+                stats['opponent'] += 1
+        tot = 35*stats['oob'] -25*stats['player'] +25*stats['opponent']
+        siegeness = _bound(0, siegeness, MAX_SIEGENESS)
+    return siegeness/100.
 
 
 def _score_siege_surrounded_shape(rith, coord_dest, shape):

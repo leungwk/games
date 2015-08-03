@@ -1,5 +1,6 @@
-from games.conga.conga import Move, Cell, Conga, Player, Agent, RandomAgent, AlphaBetaAgent, _invalid_cell
+from games.conga.conga import Move, Conga
 from games.common.board import Board
+from games.conga.cell import Cell, Player
 
 #### ================================================================
 #### Cell

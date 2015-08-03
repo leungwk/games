@@ -3,7 +3,6 @@ Define the Conga game objects, agents, logic, and state.
 """
 
 from collections import namedtuple, defaultdict
-from enum import Enum
 import itertools
 import random
 import copy
@@ -25,89 +24,41 @@ from games.search.search import one_ply_lookahead_terminal
 from games.common.agent import MonteCarloTreeSearchAgent
 from games.common.agent import AlphaBetaAgent as AlphaBetaAgentCommon
 
+from games.conga.cell import Cell, Player
+
 DATA_DIR = 'data/'
 CONGA_OUT_DIR = DATA_DIR +'out/conga/'
 
 Move = namedtuple('Move', ['src', 'dest']) # should be a class to enforce that fields should be a 2-tuples
 INVALID_MOVE = Move(None, None)
 
-class Cell(object):
-    def __init__(self, num, player):
-        self.num = num
-        self.player = player
-
-
-    def __eq__(self, other):
-        return (self.num == other.num) and \
-          (self.player == other.player)
-
-
-    def __ne__(self, other):
-        return not self.__eq__(other)
-
-
+class CongaBoard(Board):
     def __str__(self):
-        return '{}{}'.format(self.num, self.player)
+        def _pad(s): # pad to 3
+            if 2 == len(s):
+                return ' {}'.format(s)
+            if 1 == len(s):
+                return ' {} '.format(s)
+            return s
 
-
-    def __repr__(self):
-        return 'Cell(num={num}, player={player})'.format(num=self.num, player=repr(self.player))
-
-
-    def __hash__(self):
-        return hash((self.num, self.player))
-
-
-class Player(Enum):
-    """Define the allowed players as a type"""
-
-    invalid = 0
-    black = 1
-    white = 2
-    none = 3
-
-    def __str__(self):
-        if self.value == 0:
-            return '?'
-        elif self.value == 1:
-            return 'B'
-        elif self.value == 2:
-            return 'W'
-        elif self.value == 3:
-            return ' '
-        else:
-            return '!'
-
-
-    def __repr__(self):
-        if self.value == 0:
-            return 'Player.invalid'
-        elif self.value == 1:
-            return 'Player.black'
-        elif self.value == 2:
-            return 'Player.white'
-        elif self.value == 3:
-            return 'Player.none'
-        else:
-            return 'Player.invalid' # filler
-
-
-    @staticmethod
-    def opponent(player):
-        if player == Player.black:
-            opponent = Player.white
-        elif player == Player.white:
-            opponent = Player.black
-        elif player == Player.invalid:
-            opponent = Player.invalid
-        elif player == Player.none:
-            opponent = Player.none # unsure what would happen...
-        else:
-            raise ValueError("Unknown value: {}".format(player))
-        return opponent
-
-
-_invalid_cell = Cell(num=-1, player=Player.invalid)
+        acc_tot = ''
+        heading = '\t ' +''.join([' {}  '.format(str(row)) for row in range(1, self.ncols +1)])
+        acc_tot += heading +'\n' # headings
+        for col in range(self.nrows, 0, -1):
+            acc_row = '{}\t'.format(col)
+            for row in range(1, self.ncols +1):
+                coord = (row, col)
+                cell = self._board[coord]
+                if cell.num == 0:
+                    str_cell = '|   '
+                else:
+                    str_cell = '|' +str(_pad(str(cell)))
+                acc_row += str_cell
+            acc_tot += '\t' +'+---'*self.ncols +'+\n'
+            acc_tot += acc_row +'|\n'
+        acc_tot += '\t' +'+---'*self.ncols +'+\n'
+        acc_tot += heading +'\n' # headings
+        return acc_tot
 
 
 class Conga(State):
@@ -130,7 +81,7 @@ class Conga(State):
         ]
 
     def __init__(self, nrows=4, ncols=4):
-        self._board = Board(nrows, ncols, lambda: Cell(num=0, player=Player.none))
+        self._board = CongaBoard(nrows, ncols, lambda: Cell(num=0, player=Player.none))
         self._board[(1, 4)] = Cell(num=10, player=Player.black)
         self._board[(4, 1)] = Cell(num=10, player=Player.white)
         self.turn = Player.black

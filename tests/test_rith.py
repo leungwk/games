@@ -1147,7 +1147,7 @@ rith._board[(5, 10)] = Circle(4, Player.even)
 rith._board[(5, 9)] = Circle(3, Player.odd)
 rith._board[(4, 9)] = Circle(8, Player.even)
 rith.do_move(DECLARE_VICTORY_MOVE)
-assert not rith.terminal(Player.even) # out of order
+assert rith.terminal(Player.even) # counter-clockwise
 
 #### ================================================================
 #### get_moves

@@ -1,18 +1,38 @@
-== Requirements ==
+; -*- mode: org; -*-
 
-Python 2.5.2, Enum package, statlib package
+* requirements
 
-== Running ==
+Python 3. (Developed on python 3.4).
 
-Execute the following after loading proj2.py
+Tests require py-test 3.
 
-## playing the game
-ra = random_agent()
-mma = minimax_agent()
-aba = alphabeta_agent()
-#ar = arena(mma,ra)
-ar = arena(aba,ra)
-ar.begin_games(1)
+Include =games/= in your =PYTHONPATH=, or temporarily include it using
+one of the make targets.
 
-and then watch the agents in action.
+* playing
 
+player vs. player
+#+begin_example
+PYTHONPATH=./games: python3 ./games/rith/rith.py
+PYTHONPATH=./games: python3 ./games/conga/conga.py
+#+end_example
+
+
+play against AI:
+#+begin_example
+$ make play_rith_ai
+PYTHONPATH=./games: python3 ./games/rith/rith.py --even PlayerAgent --odd AlphaBetaAgent
+
+$ make play_conga_ai
+PYTHONPATH=./games: python3 ./games/conga/conga.py --black AlphaBetaAgent --white PlayerAgent
+#+end_example
+
+
+AI vs. AI:
+#+begin_example
+$ make rith_ai_play
+PYTHONPATH=./games: python3 ./games/rith/rith.py --even AlphaBetaAgent --odd RandomAgent
+
+$ make conga_ai_play
+PYTHONPATH=./games: python3 ./games/conga/conga.py --black RandomAgent --white AlphaBetaAgent
+#+end_example

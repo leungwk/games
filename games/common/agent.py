@@ -55,7 +55,7 @@ class AlphaBetaAgent(Agent):
         self.explore_depth = kwargs.get('explore_depth', 4)
         self.seed = kwargs.get('seed', None)
         self.debug = kwargs.get('debug', False)
-        self.capacity_transposition_table = kwargs.get('capacity_transposition_table', int(1e6))
+        self.capacity_transposition_table = kwargs.get('capacity_transposition_table', None)
         for key, value in kwargs.items():
             if key == 'heuristic':
                 self.heuristic = value

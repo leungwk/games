@@ -111,20 +111,48 @@ deltas_line_adjacency = [
 
 
 ## for checking victory progressions
+## include the forward and reverse orders, because unlike taking by elementary operations, where each combination of 2 is checked, progressions must not be rearranged
+deltas_line_adjacency_vict = [
+    [(-1, 0), (+1, 0)],
+    [(+1, 0), (-1, 0)],
+
+    [(-1, -1), (+1, +1)],
+    [(+1, +1), (-1, -1)],
+
+    [(0, -1), (0, +1)],
+    [(0, +1), (0, -1)],
+
+    [(-1, +1), (+1, -1)],
+    [(+1, -1), (-1, +1)],
+]
+
 delta_right_angle = [
     [(+1, 0), (0, +1)], # ^-
+    [(0, +1), (+1, 0)], # ^-
+
     [(-1, 0), (0, +1)], # -^
+    [(0, +1), (-1, 0)], # -^
+
     [(-1, 0), (0, -1)], # -v
+    [(0, -1), (-1, 0)], # -v
+
     [(+1, 0), (0, -1)], # v-
+    [(0, -1), (+1, 0)], # v-
 ]
 
 delta_squares = [
     ## these need to be consecutive to simplify the code
     [(+1, 0), (+1, +1), (0, +1)], # <|
-    [(0, +1), (-1, +1), (-1, 0)], # v-
-    [(-1, 0), (-1, -1), (0, -1)], # |>
-    [(0, -1), (+1, -1), (+1, 0)], # >|
+    [(0, +1), (+1, +1), (+1, 0)], # <|
 
+    [(0, +1), (-1, +1), (-1, 0)], # v-
+    [(-1, 0), (-1, +1), (0, +1)], # v-
+
+    [(-1, 0), (-1, -1), (0, -1)], # |>
+    [(0, -1), (-1, -1), (-1, 0)], # |>
+
+    [(0, -1), (+1, -1), (+1, 0)], # >|
+    [(+1, 0), (+1, -1), (0, -1)], # >|
 ]
 
 

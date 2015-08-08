@@ -1,6 +1,8 @@
-AI for conga, a mancala-type, board game invented by Martin Franke.
+AI for conga, a mancala-like game invented by Martin Franke, and for
+rithmomachia, a battle of the numbers, originating from medieval Europe
+or earlier.
 
-Copyright (C) 2009  William Leung and Kinson Chik.
+Copyright (C) 2009,2015  William Leung and Kinson Chik.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

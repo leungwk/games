@@ -32,7 +32,7 @@ DATA_DIR = 'data/'
 RITH_OUT_DIR = DATA_DIR +'out/rith/'
 
 from games.rith.move import Move, Take, Drop, DECLARE_VICTORY_MOVE, DONE_MOVE, INVALID_MOVE
-from games.rith.move import deltas_cross, deltas_xshape, deltas_line_adjacency, delta_right_angle, delta_squares, marches_circle, marches_triangle, marches_square, flying_circle, flying_triangle, flying_square
+from games.rith.move import deltas_cross, deltas_xshape, deltas_line_adjacency, deltas_line_adjacency_vict, delta_right_angle, delta_squares, marches_circle, marches_triangle, marches_square, flying_circle, flying_triangle, flying_square
 
 from games.rith.piece import Player, PieceName
 from games.rith.piece import Circle, Triangle, Square, Pyramid, NONE_PIECE
@@ -181,8 +181,7 @@ class Rith(State):
         #     return self.terminal(self.turn)
         elif move.type == 'done':
             return True
-        # raise ValueError('Unrecognized move type: {}'.format(move.type))
-        return False
+        return None # unrecognized
 
 
     def _is_legal_drop(self, move):
@@ -216,59 +215,7 @@ class Rith(State):
 
 
     def _is_legal_take(self, move):
-        """
-
-        == Known rules ==
-
-        Taking by equality/encountering: The player's and opponent's piece have the same number, and the player can reach the opponent in a regular (ie. marching) move.
-
-
-
-        Taking by eruption (Fulke, third kind): Between the player's and opponent's piece, orthogonally or diagonally in a straight line, the number of squares k between piece and opponent inclusive, is both unoccupied, and the smaller number n times the large number m is such that nk=m.
-
-
-
-        Taking by obsidion/oblivion/siege: A piece is blocked (at least one of these variants must be selected):
-
-        variants:
-        - all regular (ie. marching) moves of a piece are blocked by board edge or opponent pieces (Fulke, first and second kind)
-        - a piece is surrounded on all orthogonal directions, or all corners (and not some mix), by board edge or opponent pieces (Fulke, third kind)
-
-
-
-        Taking by addition/subtraction: Two of the player's pieces are, as arranged below, such that when their numbers add or subtract, the result equals the opponent's piece.
-
-        variants:
-        - piece's regular (ie. marching) movement (Fulke, first kind)
-        - adjacent ("next spaces") and in a line (Fulke, second kind)
-        - taking by deceit or lying wait (Fulke, third kind): any adjacency
-
-
-
-        Taking by multiplication/division:
-        - For the first kind, same as the first kind of addition/subtraction's form
-        - "void spaces": number of squares between piece and opponent (exclusive) (Fulke, second kind) (assuming a clean line of sight)
-
-
-
-        == Potential adaptations ==
-
-        Taking by power/root:
-        - (adaption of "taking by cossical signs" (Fulke, second kind))
-        - Same as the first kind of addition/subtraction's form
-
-        others
-        - "void spaces" can be extended to be inclusive, and thus similar to taking by eruption.
-        - "void spaces", inclusive or exclusive, can also be extended to power/root
-        - power/root also uses void_spaces
-
-
-        == Notes ==
-
-        Fulke's first kind: flying moves may not take any piece
-
-        Regarding multiple captures: If allowed and unless indicated otherwise, before a player's move the player may take the opponent either with or without removing into the opponent's place. After a player's move, the player make take only without removing into the opponent's place.
-        """
+        """See doc/rules/rith.org for taking rules"""
         ## the use of type checks is in lieu of making src and dest a collection in all cases. For src, None corresponds to asking for a search, while a tuple is a single coord, and a list should hold 2 coord. This is how the moves are encoded.
         if (type(move.src) == tuple) and self._valid_taking_by_equality(move):
             return True
@@ -457,10 +404,18 @@ class Rith(State):
 
 
     def __taking_cond_marches(self, coord_dest, piece_dest, colour_opponent, cond, pre_found_pieces=None):
-        ## find two pieces (if any) such that, if both could march into the opponent's place (piece_dest), their sum or difference equals that of the opponent (if taking by addition/subtraction), or product/quotient, or power/root (the condition cond)
-        ## this code does /not/ assume all marches are limited to at most 4; it could probably do so for the rulesets that will be used. Eventually replace this with an index, or something
-        ## this code does assume that only one piece per space may count towards the total two pieces.
-        ## without ... specified, it will look for /any/ match in .pieces (so it will match any within pyramid)
+        """Find two pieces (if any) such that, if both could march into
+        the opponent's place (piece_dest), their sum or difference
+        equals that of the opponent (if taking by addition/subtraction),
+        or product/quotient, or power/root (the condition cond).
+
+        This code does /not/ assume all marches are limited to at most
+        4; it could probably do so for the rulesets that will be
+        used. Eventually replace this with an index, or something.
+
+        This code does assume that only one piece per space may count
+        towards the total two pieces.
+        """
         if (pre_found_pieces is not None) and len(pre_found_pieces) != 2:
             return False
 
@@ -481,7 +436,6 @@ class Rith(State):
                         continue
                     ## now check for a clear line of sight (more expensive) from the piece under consideration
                     if self._is_empty_check(piece_cur, coord_cur, delta, inclusive=False):
-                        # found_pieces.append((coord_cur, piece_cur))
                         acc.pieces.append(piece_cur)
                         break
             if acc.pieces:
@@ -844,42 +798,13 @@ class Rith(State):
 
 
     def terminal(self, player):
-        """
+        """See doc/rules/rith.org for victory conditions"""
 
-        Victory conditions for Fulke's first kind:
-        - The entire pyramid must be taken first (also required in his second and third kind)
-        - The players pieces used in a triumph must be brought in by marches, not flights
-        - Proper victories must occur in the opponent's 'half'
-        - Ordering is important
-        - The pieces must be arranged, with no spaces, or equidistant spaces (if spaces enabled), in a line, or a right angle
-        - At least one piece in the progression must be the player's
-
-        Variants (that are implemented):
-        - any number of equi-spaces between pieces are allowed for their formation, and there must be a clear line of sight between the pieces
-        - Pieces do not have to be brought it in only by marches
-
-        Proper victories: Form arithmetic, geometrical, or harmonic ("musical") progression, or some combination
-        - harmonic: a, b, c is a harmonic progression if c/a = (c-b)/(b-a)
-        - note: capturing the pyramid first is required only for these kinds of victories
-
-
-        Common victories, as agreed upon by the player's at the beginning of a game:
-        - bodies: greater than or equal to the number of rith pieces taken by a player (irregardless of the value written)
-        - goods: greater than or equal to the total sum of the value written on each piece (TODO: can this be asymmetric?)
-        - quarrels: victory by goods, and that the number of digits ("characters") in all digits equal or exceeds a threshold (ex. "2" is one digit, while "49" is two digits)
-        - honour: victory by goods, and the number of pieces used to make such a victory (ie. sum) is less than or equal to some threshold
-        - quarrels and honour
-        - (TODO: implement) standards: one standard of even is 130, and one standard of odd is 174. The victor is one who captures k of the opponent's standards, that is, the even player must capture pieces totalling 174*k, and likewise 130*k for the odd player.
-        """
-        ## find some kind of victory for player;
-        ## different from the code where the player must declare what pieces are involved in a victory
-
-        ## assuming the pyramid is deconstructed when taken, whether partially or fully
-        ## TODO: check the code for this
-        ## also assuming common victories do not require the pyramid to be taken first
         #### ================================================================
         #### common victories
         #### ================================================================
+
+        ## assuming common victories do not require the pyramid to be taken first
 
         cnt_pieces = self.settings.get('victory.bodies', 0)
         if cnt_pieces > 0:
@@ -933,7 +858,6 @@ class Rith(State):
                     continue
                 if piece_cur.colour == Player.opponent(player):
                     ## opponent's pyramid still exists
-                    ## (note, if the entire pyramid is taken, it cannot be dropped even if all its components can)
                     opponent_pyramid_captured = False
                     return False
             ## no opponent pyramid found
@@ -941,30 +865,27 @@ class Rith(State):
         #### ================================================================
         #### proper victories
         #### ================================================================
+
         if not self._victory_declared:
             return False
 
-        def _progressions(piece_1, piece_2, piece_cur):
-            for p_1, p_2, p_c in itertools.product(piece_1.pieces, piece_2.pieces, piece_cur.pieces):
+        def _progressions(piece_1, piece_2, piece_3): # a b c
+            for p_1, p_2, p_3 in itertools.product(piece_1.pieces, piece_2.pieces, piece_3.pieces):
                 ## arithmetic
-                if (p_2.num -p_c.num == p_c.num -p_1.num):
+                if (p_3.num -p_2.num == p_2.num -p_1.num):
                     return True
                 ## geometric
-                if (p_2.num / p_c.num == p_c.num / p_1.num):
+                if (p_1.num * p_3.num == p_2.num * p_2.num):
                     return True
                 ## harmonic
-                ## TODO: should use integer math only to avoid rounding problems
-                if ((p_2.num / p_1.num)*(p_c.num -p_1.num)) == (p_2.num -p_c.num): # second term a mult to avoid any division
+                if (p_3.num * (p_2.num -p_1.num)) == (p_1.num * (p_3.num -p_2.num)):
                     return True
             return False
 
         ## for each of the player's piece that is on the opponent's side of the board,
-        # found_pieces = []
         for coord_cur, piece_cur in self._board.items():
             if piece_cur == NONE_PIECE:
                 continue
-            # if piece_cur.colour != player:
-            #     continue
             ## by fulke 1,
             ## TODO: this should probably be set along with the _setup*() so to avoid any problems
             def _offside(coord):
@@ -977,9 +898,8 @@ class Rith(State):
                 return False
             if _offside(coord_cur):
                 continue
-            # found_pieces.append((coord_cur, piece_cur))
             ## find sequences of length 3
-            for deltas_list in [deltas_line_adjacency, delta_right_angle]:
+            for deltas_list in [deltas_line_adjacency_vict, delta_right_angle]:
                 for (delta_1, delta_2) in deltas_list:
                     for idx, ((coord_d1, piece_d1), (coord_d2, piece_d2)) \
                       in enumerate(zip_longest(
@@ -998,7 +918,7 @@ class Rith(State):
                         if piece_d1 == NONE_PIECE or piece_d2 == NONE_PIECE:
                             break # not equidistant
                         ## pieces should be equidistant, in proper shape, and onside
-                        if _progressions(piece_d1, piece_d2, piece_cur) and any([p.colour == player for p in [piece_d1, piece_d2, piece_cur]]):
+                        if _progressions(piece_d1, piece_cur, piece_d2) and any([p.colour == player for p in [piece_d1, piece_d2, piece_cur]]):
                             return True
                         else:
                             break # do not search beyond first non-empty piece
@@ -1006,6 +926,7 @@ class Rith(State):
             ## find sequences of length 4
             ## TODO: somehow merge with above
             # coord_cur_x, coord_cur_y = coord_cur
+            ## piece_cur is one of the corners of this square
             for deltas_list in [delta_squares]:
                 for (delta_1, delta_2, delta_3) in deltas_list:
                     for idx, ((coord_d1, piece_d1), (coord_d2, piece_d2), (coord_d3, piece_d3)) \
@@ -1046,7 +967,7 @@ class Rith(State):
                                     [piece_cur, p_1, p_3],
                                     [piece_cur, p_2, p_3],
                                     ]:
-                                if _progressions(seq[0], seq[1], seq[2]) and any([p.colour == player for p in seq]):
+                                if _progressions(seq[0], seq[2], seq[1]) and any([p.colour == player for p in seq]):
                                     return True
                                 else:
                                     break
@@ -1064,20 +985,17 @@ class Rith(State):
             self.num_ply += 1
             return True
 
-        ## assuming move was issued by self.turn
-
         coord_src, coord_dest = move.src, move.dest
         if move.type == 'move':
             if self._has_moved:
                 return False
-            ## validated assumptions
+            ## validated assumptions from is_legal_move(move)
             ## - there exists a non-empty piece at src
             ## - there exists an empty piece or opponent piece at dest
             piece_src, piece_dest = self._board[coord_src], self._board[coord_dest]
             self._board[coord_src] = piece_dest # swap
             self._board[coord_dest] = piece_src
-            # if piece_dest != NONE_PIECE:
-            #     raise Exception("move input mis-specified but is_legal_move(move) did not catch it. This is a bug") # TODO: remove?
+
             self._has_moved = True
             self.num_ply += 1
             return True
@@ -1128,7 +1046,6 @@ class Rith(State):
             self._board[move.dest] = piece
             del prisoners[idx]
             self._has_moved = True
-            ## though, I did not see a rule about only 1 drop per turn
             self.num_ply += 1
             return True
 
@@ -1144,7 +1061,8 @@ class Rith(State):
 
 
     def get_moves(self, player):
-        ## as currently coded, it might be highly redundant and unoptimized
+        ## the current implementation is highly redundant and unoptimized.
+        ## Furthermore, it should not return search moves
         if self.turn != player:
             return set() # wrong turn
 
@@ -1227,6 +1145,7 @@ class PlayerAgent(Agent):
 move (8, 4) (7, 7)
 take (7, 7) (3, 11) Circle(3, Player.odd)
 take (7, 7) (3, 11) C3_
+take None (3, 11) C3_
 drop 1 (1, 1)
 vict
 done
@@ -1250,7 +1169,7 @@ quit
                 left = right
                 state = 1
                 continue
-            if char == ')' and state in [1, 2]:
+            if state in [1, 2] and (char == ')' or cmd[left:right].strip() == 'None'):
                 right += 1
                 acc.append(cmd[left:right].strip())
                 left = right
@@ -1317,10 +1236,13 @@ quit
                         move_obj = Drop(eval(src), eval(dest))
                     elif move_type == 'move':
                         move_obj = Move(eval(src), eval(dest))
+                    # elif move_type == 'take':
+                    #     move_obj = Take(None, eval(src), eval(dest))
                 elif len(cmd_split) == 4:
                     move_type, src, dest, piece = cmd_split
                     if move_type == 'take':
                         move_obj = Take(eval(src), eval(dest), eval(piece))
+                        ## to make it an unspecified (ie. search) Take, type "None" for src
                 res = rith.is_legal_move(move_obj)
                 if res:
                     move = move_obj
@@ -1400,7 +1322,8 @@ if __name__ == '__main__':
         'heuristic': heuristic_1,
         'debug': args.debug,
         'explore_depth': args.explore_depth,
-        'capacity_transposition_table': int(1e5),
+        # 'capacity_transposition_table': int(1e5),
+        'capacity_transposition_table': None, # not useful with small depth, and large branching factor
         }
 
     first = eval(args.even)

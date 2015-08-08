@@ -368,7 +368,7 @@ if __name__ == '__main__':
     parser.add_argument('--no-verbose', dest='no_verbose', action='store_true')
     parser.add_argument('--debug', dest='debug', action='store_true')
     parser.add_argument('--explore-depth', type=int, default=4)
-    parser.add_argument('--black', type=str, default='AlphaBetaAgent')
+    parser.add_argument('--black', type=str, default='PlayerAgent')
     parser.add_argument('--white', type=str, default='PlayerAgent')
     parser.add_argument('--num-games', type=int, default=100)
     parser.add_argument('--no-arena-output-results', dest='arena_output_results', action='store_true')

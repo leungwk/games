@@ -1,0 +1,423 @@
+#+title: Rules for rithmomachia
+
+Rithmomachia is a two player game, played on a 8x16 board, between the
+/even/ player who moves first, and the /odd/ player who moves second.
+Each piece has a shape and number, as well as two types of
+movements. The objective of the game is to achieve either a common
+victory, such as taking a certain number, kind, etc. of pieces, or a
+proper victory, by forming a mathematical progression on the opponent's
+side of the board.
+
+* setup
+
+"fulke 1" board setup. The even player is unmarked, while the odd player is marked with a post-pended "_".
+#+BEGIN_EXAMPLE
+	   1     2     3     4     5     6     7     8
+	+-----+-----+-----+-----+-----+-----+-----+-----+
+16	|     |     |     |     |     |     |     |     |
+	+-----+-----+-----+-----+-----+-----+-----+-----+
+15	|     |     |     |     |     |     |     |     |
+	+-----+-----+-----+-----+-----+-----+-----+-----+
+14	| S49_|S121_|     |     |     |     |S225_|S361_|
+	+-----+-----+-----+-----+-----+-----+-----+-----+
+13	| S28_| S66_| T30_| T36_| T56_| T64_|S120_|  b  |
+	+-----+-----+-----+-----+-----+-----+-----+-----+
+12	| T16_| T12_| C9_ | C25_| C49_| C81_| T90_|T100_|
+	+-----+-----+-----+-----+-----+-----+-----+-----+
+11	|     |     | C3_ | C5_ | C7_ | C9_ |     |     |
+	+-----+-----+-----+-----+-----+-----+-----+-----+
+10	|     |     |     |     |     |     |     |     |
+	+-----+-----+-----+-----+-----+-----+-----+-----+
+9	|     |     |     |     |     |     |     |     |
+	+-----+-----+-----+-----+-----+-----+-----+-----+
+8	|     |     |     |     |     |     |     |     |
+	+-----+-----+-----+-----+-----+-----+-----+-----+
+7	|     |     |     |     |     |     |     |     |
+	+-----+-----+-----+-----+-----+-----+-----+-----+
+6	|     |     | C8  | C6  | C4  | C2  |     |     |
+	+-----+-----+-----+-----+-----+-----+-----+-----+
+5	| T81 | T72 | C64 | C36 | C16 | C4  | T6  | T9  |
+	+-----+-----+-----+-----+-----+-----+-----+-----+
+4	| S153|  P  | T49 | T42 | T20 | T25 | S45 | S15 |
+	+-----+-----+-----+-----+-----+-----+-----+-----+
+3	| S289| S169|     |     |     |     | S81 | S25 |
+	+-----+-----+-----+-----+-----+-----+-----+-----+
+2	|     |     |     |     |     |     |     |     |
+	+-----+-----+-----+-----+-----+-----+-----+-----+
+1	|     |     |     |     |     |     |     |     |
+	+-----+-----+-----+-----+-----+-----+-----+-----+
+	   1     2     3     4     5     6     7     8
+
+P (tot 91) = S36 S25 T16 T9 C4 C1
+b (tot 190) = S64_ S49_ T36_ T25_ C16_
+Even's prisoners:
+Odd's prisoners:
+
+Turn: E
+#+END_EXAMPLE
+
+The "fulke 3" board setup is "fulke 1" but with each player's pieces
+shifted back two rows.
+
+* pieces
+
+There are three kinds of pieces identified by shape, the circle,
+triangle, and square, each having a given number. Each piece has at most
+two kinds of movement known as marches and flight moves.
+#
+Marching (aka. regular) moves requires an unobstructed path between piece origin and destination.
+    (under Fulke's rules, these are orthogonal or diagonal, straight lines)
+Flying (aka. irregular) moves require an empty space at the destination.
+    (under Fulke's rules, these are (extended) knight moves).
+
+Circle. Moves one space in either of the 4 diagonal directions
+#+BEGIN_EXAMPLE
++-----+-----+-----+-----+-----+-----+-----+
+|     |     |     |     |     |     |     |
++-----+-----+-----+-----+-----+-----+-----+
+|     |     |     |     |     |     |     |
++-----+-----+-----+-----+-----+-----+-----+
+|     |     |  o  |     |  o  |     |     |
++-----+-----+-----+-----+-----+-----+-----+
+|     |     |     | C4  |     |     |     |
++-----+-----+-----+-----+-----+-----+-----+
+|     |     |  o  |     |  o  |     |     |
++-----+-----+-----+-----+-----+-----+-----+
+|     |     |     |     |     |     |     |
++-----+-----+-----+-----+-----+-----+-----+
+|     |     |     |     |     |     |     |
++-----+-----+-----+-----+-----+-----+-----+
+#+end_example
+
+Triangle.
+Moves two spaces in either of 4 orthogonal directions (marches; "o"), or
+moves a knight's move (flights; "+")
+#+begin_example
++-----+-----+-----+-----+-----+-----+-----+
+|     |     |     |     |     |     |     |
++-----+-----+-----+-----+-----+-----+-----+
+|     |     |  +  |  o  |  +  |     |     |
++-----+-----+-----+-----+-----+-----+-----+
+|     |  +  |     |     |     |  +  |     |
++-----+-----+-----+-----+-----+-----+-----+
+|     |  o  |     | T9  |     |  o  |     |
++-----+-----+-----+-----+-----+-----+-----+
+|     |  +  |     |     |     |  +  |     |
++-----+-----+-----+-----+-----+-----+-----+
+|     |     |  +  |  o  |  +  |     |     |
++-----+-----+-----+-----+-----+-----+-----+
+|     |     |     |     |     |     |     |
++-----+-----+-----+-----+-----+-----+-----+
+#+end_example
+
+Square.
+Moves three spaces in either of 4 orthogonal directions (marches; "o"), or
+moves an extended knight's move (flights; "+")
+#+begin_example
++-----+-----+-----+-----+-----+-----+-----+
+|     |     |  +  |  o  |  +  |     |     |
++-----+-----+-----+-----+-----+-----+-----+
+|     |     |     |     |     |     |     |
++-----+-----+-----+-----+-----+-----+-----+
+|  +  |     |     |     |     |     |  +  |
++-----+-----+-----+-----+-----+-----+-----+
+|  o  |     |     | S25 |     |     |  o  |
++-----+-----+-----+-----+-----+-----+-----+
+|  +  |     |     |     |     |     |  +  |
++-----+-----+-----+-----+-----+-----+-----+
+|     |     |     |     |     |     |     |
++-----+-----+-----+-----+-----+-----+-----+
+|     |     |  +  |  o  |  +  |     |     |
++-----+-----+-----+-----+-----+-----+-----+
+#+END_EXAMPLE
+
+The pyramid functions as the union of all its component pieces, in
+addition to the function of each individual component.
+
+* movement and turns
+
+Each player may make at most one drop[1] or move per turn, but there is
+an unlimited number of [[taking][takes]] allowed before and after a drop or move.
+
+A drop requires the player to have its prisoners dropped into an
+unoccupied space on the back row of a player's side. Only pieces
+individually may be dropped, and not as a pyramid.
+
+In rithmomachia, a player is /required/ to declare victory (if victory
+conditions hold), because multiple victory levels exist. Likewise,
+because of a potential for more than one take, alongside a drop or move,
+a player must also declare when a player's turn is over.
+
+* taking
+
+All take moves do /not/ require the taking piece(s) to move into the taken
+piece's space.
+
+When either part of or the whole pyramid is taken, the pyramid is
+deconstructed into each individual component, and cannot be dropped as whole.
+
+** equality
+
+The player's and opponent's piece have the same number, and the player's
+piece can reach the opponent in a marching (ie. regular) move. If
+=taking.equality.flight= is enabled, the player's piece may reach the
+opponent in a flight move.
+
+Taking by equality. The even square 25 takes the odd circle 25.
+#+BEGIN_EXAMPLE
++-----+-----+-----+-----+-----+
+|     |     |     |     |     |
++-----+-----+-----+-----+-----+
+|     |     |     |     |     |
++-----+-----+-----+-----+-----+
+| S25 |     |     | C25_|     |
++-----+-----+-----+-----+-----+
+|     |     |     |     |     |
++-----+-----+-----+-----+-----+
+|     |     |     |     |     |
++-----+-----+-----+-----+-----+
+#+END_EXAMPLE
+
+** eruption
+
+Between the player's and opponent's piece, orthogonally or diagonally in
+a straight line, the number of spaces k between piece and opponent
+inclusive are unoccupied (except for piece and opponent), and the
+smaller number n times the larger number m is such that nk=m. Enable
+with =taking.eruption=.
+
+Taking by eruption. The even square 15 takes the odd circle 5, because
+15=5*3. Notice how C5_ is not within any of S15's marches or flights.
+#+BEGIN_EXAMPLE
++-----+-----+-----+-----+-----+
+|     |     |     |     |     |
++-----+-----+-----+-----+-----+
+|     |     |     | C5_ |     |
++-----+-----+-----+-----+-----+
+|     |     |     |     |     |
++-----+-----+-----+-----+-----+
+|     | S15 |     |     |     |
++-----+-----+-----+-----+-----+
+|     |     |     |     |     |
++-----+-----+-----+-----+-----+
+#+END_EXAMPLE
+
+** siege
+
+(also known as taking by obsidion, or taking by oblivion).
+
+A piece is blocked, in at least one of these variants to be be selected:
+
+All marching moves of a piece are blocked by board edge or opponent
+pieces (Fulke, first and second kind). Enable with =taking.siege.block_marches=.
+
+A piece is surrounded on all orthogonal directions, or all corners, and
+not some mix, by board edge or opponent pieces (Fulke, third kind).
+Enable with =taking.siege.surrounded=.
+
+Taking by siege (block marches)
+#+BEGIN_EXAMPLE
++-----+-----+-----+-----+-----+
+|     | S15 |     |     |     |
++-----+-----+-----+-----+-----+
+|     |     |     |     |     |
++-----+-----+-----+-----+-----+
+|     |     |     |     |     |
++-----+-----+-----+-----+-----+
+| C4  |S361_|     | T72 |     |
++-----+-----+-----+-----+-----+
+|     | C2  |     |     |     |
++-----+-----+-----+-----+-----+
+#+END_EXAMPLE
+
+Taking by siege (surrounded).
+#+BEGIN_EXAMPLE
++-----+-----+-----+-----+-----+
+|     |     |     |     |     |
++-----+-----+-----+-----+-----+
+|     |     |     |     |     |
++-----+-----+-----+-----+-----+
+| C4  |     | S15 |     |     |
++-----+-----+-----+-----+-----+
+|     |S361_|     |     |     |
++-----+-----+-----+-----+-----+
+| C2  |     | T72 |     |     |
++-----+-----+-----+-----+-----+
+#+END_EXAMPLE
+
+** elementary operations
+
+Taking by addition/subtraction: Two of the player's pieces are such that
+when their numbers add or subtract, the result equals the opponent's
+piece, and the player's pieces:
+- can reach the opponent piece's in a marching move (Fulke, first
+  kind). Enable with =taking.addition.marches=
+- are adjacent ("next spaces") and in a straight line of the opponent
+  (Fulke, second kind). Enable with =taking.addition.line_adjacency=
+- "taking by deceit or lying wait" (Fulke, third kind): any
+  adjacency. Enable with =taking.addition.any_adjacency=
+
+Taking by addition/subtraction (marches). C5_ is taken because 5=20-15,
+and S15 and T20 are within a marching move of C5_.
+#+BEGIN_EXAMPLE
++-----+-----+-----+-----+-----+
+|     |     |     |     |     |
++-----+-----+-----+-----+-----+
+| S15 |     |     | C5_ |     |
++-----+-----+-----+-----+-----+
+|     |     |     |     |     |
++-----+-----+-----+-----+-----+
+|     |     |     | T20 |     |
++-----+-----+-----+-----+-----+
+|     |     |     |     |     |
++-----+-----+-----+-----+-----+
+#+END_EXAMPLE
+
+The same conditions but with a line adjacency
+#+BEGIN_EXAMPLE
++-----+-----+-----+-----+-----+
+|     |     |     |     |     |
++-----+-----+-----+-----+-----+
+|     |     | S15 | C5_ | T20 |
++-----+-----+-----+-----+-----+
+|     |     |     |     |     |
++-----+-----+-----+-----+-----+
+|     |     |     |     |     |
++-----+-----+-----+-----+-----+
+|     |     |     |     |     |
++-----+-----+-----+-----+-----+
+#+END_EXAMPLE
+
+
+
+Taking by multiplication/division:
+- For the first kind, same as Fulke's first kind of addition/subtraction in
+  form. Enable with =taking.multiplication.marches=
+- "void spaces": Like taking by eruption, but instead using the number
+  of squares between piece and opponent (exclusive) (Fulke, second
+  kind). Enable with =taking.multiplication.void_spaces=.
+
+Taking by multiplication/division. T12_ is taken because 12=72/6.
+#+BEGIN_EXAMPLE
++-----+-----+-----+-----+-----+
+|     |     |     |     |     |
++-----+-----+-----+-----+-----+
+|     | T72 |     | T12_|     |
++-----+-----+-----+-----+-----+
+|     |     | C6  |     |     |
++-----+-----+-----+-----+-----+
+|     |     |     |     |     |
++-----+-----+-----+-----+-----+
+|     |     |     |     |     |
++-----+-----+-----+-----+-----+
+#+END_EXAMPLE
+
+* victory
+
+Some variants of the game require the opponent's pyramid to be fully
+dismantled first, before a proper victory may be declared. Enable this with
+=victory.take_pyramid_first=. This condition does not affect common victories.
+
+In Fulke's first kind, the players pieces used in a triumph must be brought in by marches, not flights.
+However, the current implementation permits pieces to not have to be brought in only by marches.
+
+** common victory
+
+Common victories consist of victory by:
+- bodies: greater than or equal to the number of rith pieces taken by a player (irregardless of the value written)
+- goods: greater than or equal to the total sum of the value written on each piece taken
+  - see victory by standards for an asymmetric condition
+- quarrels: victory by goods, and that the number of digits ("characters") in all digits equal or exceeds a threshold (ex. "2" is one digit, while "49" is two digits)
+- honour: victory by goods, and the number of pieces used to make such a victory (ie. sum) is less than or equal to some threshold
+- quarrels and honour
+- standards: one standard of even is 130, and one standard of odd is 174. The victor is one who captures k of the opponent's standards, that is, the even player must capture pieces totalling 174*k, and likewise 130*k for the odd player.
+
+These kinds of victories are agreed upon by the players at the beginning of a game.
+Enable with one of the =victory.*= settings.
+
+** proper victory
+
+To achieve a proper victory, form an arithmetic, geometrical, or
+harmonic ("musical") progression, or some combination of four; ordering is important.
+A /great/ triumph contains one of the progressions.
+A /greater/ triumph contains two of the progressions.
+A /greatest/ triumph contains all three of the progressions.
+
+For proper victories in groups of four, some sub-sequence of three must
+contain one of three kinds of progressions.
+
+The pieces must be arranged, with no spaces, or equidistant spaces (if spaces enabled), in a line, or a right angle.
+At least one piece in the progression must be the player's.
+
+Proper victories must occur in the opponent's half of the board.
+
+(a,b,c) is
+- an /arithmetic/ progression if c-b = b-a
+- a /geometric/ progression if c/b = b/a
+- a /harmonic/ progression if c/a = (c-b)/(b-a).
+
+
+
+
+The odd player could win by arithmetic progression (a great triumph),
+having formed an arithmetic progression on the even player's side.
+#+begin_example
+        +-----+-----+-----+
+3       | S15 |     |     |
+        +-----+-----+-----+
+2       |     | T30_|     |
+        +-----+-----+-----+
+1       |     |     | S45 |
+        +-----+-----+-----+
+           1     2     3
+
+Turn: O
+#+end_example
+
+The even player has formed an
+arithmetic (3,6,9),
+geometric (4,6,9), and
+harmonic (3,4,6)
+progression, and can claim a greatest triumph.
+#+begin_example
+	+-----+-----+-----+
+11	| T9  |     | C3_ |
+	+-----+-----+-----+
+10	|     |     |     |
+	+-----+-----+-----+
+9	| C6  |     | C4  |
+	+-----+-----+-----+
+	   1     2     3
+
+Turn: E
+#+end_example
+
+* notes
+
+See NOTES for the source of references.
+
+Refer to =games/settings/rith.py= to see and edit all implemented
+settings of the game, as well as board setups. The default settings
+(=settings_custom_1=) closely follow Fulke's first kind of game, with
+some changes to make the game quicker.
+
+For the command line input, for take moves, one needs to specify what
+piece to take. If one enters "None", some move types have a search mode
+that do not require a src piece.
+
+** not implemented
+
+Taking by power/root:
+- (adaption of "taking by cossical signs" (Fulke, second kind))
+- Same as the first kind of addition/subtraction's form
+
+others
+- "void spaces" can be extended to be inclusive, and thus similar to taking by eruption.
+- "void spaces", inclusive or exclusive, can also be extended to power/root
+- power/root also uses =void_spaces=
+
+In Fulke's first kind, flying moves may not take any piece.
+
+** footnotes
+
+[1] I did not see a rule in Fulke about only 1 drop per turn.

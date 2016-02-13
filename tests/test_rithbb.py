@@ -3,7 +3,7 @@ from games.rith.rithbb import UINT128, BB_8_16
 
 from games.rith.rithbb import Coord
 
-from games.rith.rithbb import LineOfSightBoard, los_bb, table_ray_masks, order_winds, _los_bb_cache_init
+from games.rith.rithbb import los_bb, table_ray_masks, order_winds, _los_bb_cache_init
 
 RITH_BOARD_SHAPE = (8,16)
 
@@ -131,139 +131,6 @@ bb_list = [list('0'*8) for _ in range(16)]
 bb_list[15-14][2] = '1'
 bb_str = '\n'.join([''.join(l) for l in bb_list])
 assert bb_str == str(BB_8_16(1 << k))
-
-#### ================================================================
-#### LineOfSightBoard (Deprecated)
-#### ================================================================
-
-## this ended up being ~3 magnitudes slower than the bitboard version
-
-## LoS board
-board_los = LineOfSightBoard(nrows=16, ncols=8)
-assert set(board_los[(3,3)]) == set([])
-assert len(board_los._cache_sight) == 0
-
-board_los.insert(1, (3,3))
-assert set(board_los[(3,3)]) == set([(None, 1)])
-assert set(board_los[(4,4)]) == set([((3,3), 1)])
-assert set(board_los[(1,1)]) == set([((3,3), 1)])
-assert set(board_los[(3,15)]) == set([((3,3), 1)])
-assert set(board_los[(2,1)]) == set([])
-assert set(board_los[(6,6)]) == set([((3,3), 1)])
-assert (3,3) in board_los._cache_sight
-assert board_los._cache_sight.get((3,3), None) == {}
-assert (5,9) not in board_los._cache_sight
-assert board_los._cache_sight.get((5,9), None) == None
-
-## insert where multiple LoS overlap
-board_los.insert(2, (5,9))
-assert set(board_los[(3,3)]) == set([(None, 1)])
-assert set(board_los[(5,9)]) == set([(None, 2)])
-for coord in [(5,1), (5,5), (7,7), (3,9), (3,7), (3,11)]:
-    assert set(board_los[coord]) == set([((3,3), 1), ((5,9), 2)])
-assert set(board_los[(3,8)]) == set([((3,3), 1)])
-assert set(board_los[(5,8)]) == set([((5,9), 2)])
-assert set(board_los[(6,8)]) == set([((5,9), 2)])
-assert set(board_los[(6,7)]) == set([])
-assert set(board_los[(2,1)]) == set([])
-assert (3,3) in board_los._cache_sight
-assert board_los._cache_sight.get((3,3), None) == {}
-assert (5,9) in board_los._cache_sight
-assert board_los._cache_sight.get((5,9), None) == {} # (5,9) sees nothing
-assert board_los._cache_sight.get((3,4), None) == None # there is nothing at (3,4)
-
-## insert on the same square
-board_los.insert(3, (3,3))
-assert set(board_los[(3,3)]) == set([(None, 1), (None, 3)])
-assert set(board_los[(5,9)]) == set([(None, 2)])
-assert set(board_los[(4,4)]) == set([((3,3), 1), ((3,3), 3)])
-assert set(board_los[(2,2)]) == set([((3,3), 1), ((3,3), 3)])
-assert set(board_los[(3,15)]) == set([((3,3), 1), ((3,3), 3)])
-assert set(board_los[(2,1)]) == set([])
-for coord in [(5,1), (5,5), (7,7), (3,9), (3,7), (3,11)]:
-    assert set(board_los[coord]) == set([((3,3), 1), ((5,9), 2), ((3,3), 3)])
-assert (3,3) in board_los._cache_sight
-assert board_los._cache_sight.get((3,3), None) == {}
-assert (5,9) in board_los._cache_sight
-assert board_los._cache_sight.get((5,9), None) == {} # (5,9) sees nothing
-assert board_los._cache_sight.get((3,4), None) == None # there is nothing at (3,4)
-
-board_los.delete(4, (4,4))
-## nothing should have changed
-assert set(board_los[(4,4)]) == set([((3,3), 1), ((3,3), 3)])
-assert set(board_los[(2,2)]) == set([((3,3), 1), ((3,3), 3)])
-assert set(board_los[(3,15)]) == set([((3,3), 1), ((3,3), 3)])
-assert set(board_los[(2,1)]) == set([])
-assert (3,3) in board_los._cache_sight
-assert board_los._cache_sight.get((3,3), None) == {}
-assert (5,9) in board_los._cache_sight
-assert board_los._cache_sight.get((5,9), None) == {} # (5,9) sees nothing
-assert board_los._cache_sight.get((3,4), None) == None # there is nothing at (3,4)
-
-board_los.delete(2, (5,9))
-## board should be in the same state as it was at board_los.insert(3, (3,3))
-assert set(board_los[(3,3)]) == set([(None, 1), (None, 3)])
-assert set(board_los[(5,9)]) == set([])
-for coord in [(5,1), (5,5), (7,7), (3,9), (3,7), (3,11)]:
-    assert set(board_los[coord]) == set([((3,3), 1), ((3,3), 3)])
-assert set(board_los[(4,4)]) == set([((3,3), 1), ((3,3), 3)])
-assert set(board_los[(2,2)]) == set([((3,3), 1), ((3,3), 3)])
-assert set(board_los[(3,15)]) == set([((3,3), 1), ((3,3), 3)])
-assert set(board_los[(2,1)]) == set([])
-assert (3,3) in board_los._cache_sight
-assert board_los._cache_sight.get((3,3), None) == {}
-assert (5,9) not in board_los._cache_sight
-assert board_los._cache_sight.get((5,9), None) == None
-assert board_los._cache_sight.get((3,4), None) == None # there is nothing at (3,4)
-
-board_los.insert(5, (5,5))
-assert set(board_los[(3,3)]) == set([(None, 1), (None, 3), ((5,5), 5)])
-assert set(board_los[(5,9)]) == set([((5,5), 5)])
-assert set(board_los[(5,5)]) == set([(None, 5), ((3,3), 1), ((3,3), 3)])
-assert set(board_los[(6,6)]) == set([((5,5), 5)])
-assert set(board_los[(7,7)]) == set([((5,5), 5)])
-assert (3,3) in board_los._cache_sight
-assert board_los._cache_sight.get((3,3), None) == {(1,1): (5,5)}
-assert board_los._cache_sight.get((5,5), None) == {(-1,-1): (3,3)}
-assert (5,9) not in board_los._cache_sight
-assert board_los._cache_sight.get((5,9), None) == None
-assert board_los._cache_sight.get((3,4), None) == None # there is nothing at (3,4)
-
-board_los.insert(2, (5,9))
-assert set(board_los[(3,3)]) == set([(None, 1), (None, 3), ((5,5), 5)])
-assert set(board_los[(5,5)]) == set([(None, 5), ((3,3), 1), ((3,3), 3), ((5,9), 2)])
-assert set(board_los[(5,9)]) == set([((5,5), 5), (None, 2)])
-assert set(board_los[(6,6)]) == set([((5,5), 5)])
-assert set(board_los[(7,7)]) == set([((5,5), 5), ((5,9), 2)])
-assert (3,3) in board_los._cache_sight
-assert board_los._cache_sight.get((3,3), None) == {(1,1): (5,5)}
-assert board_los._cache_sight.get((5,5), None) == {(-1,-1): (3,3), (0,1): (5,9)}
-assert board_los._cache_sight.get((5,9), None) == {(0,-1): (5,5)}
-
-board_los.delete(5, (5,5))
-assert set(board_los[(5,5)]) == set([((3,3), 1), ((3,3), 3), ((5,9), 2)])
-assert set(board_los[(5,4)]) == set([((5,9), 2)])
-assert set(board_los[(5,9)]) == set([(None, 2)])
-assert set(board_los[(6,6)]) == set([((3,3), 1), ((3,3), 3)])
-assert set(board_los[(7,7)]) == set([((3,3), 1), ((3,3), 3), ((5,9), 2)])
-assert (3,3) in board_los._cache_sight
-assert (5,5) not in board_los._cache_sight
-assert (5,9) in board_los._cache_sight
-assert board_los._cache_sight.get((3,3), None) == {}
-assert board_los._cache_sight.get((5,5), None) == None
-assert board_los._cache_sight.get((5,9), None) == {}
-
-board_los.insert(5, (5,5))
-board_los.insert(6, (7,7))
-assert set(board_los[(5,5)]) == set([(None, 5), ((3,3), 1), ((3,3), 3), ((5,9), 2), ((7,7), 6)])
-assert set(board_los[(5,4)]) == set([((5,5), 5)])
-assert set(board_los[(5,9)]) == set([(None, 2), ((5,5), 5), ((7,7), 6)])
-assert set(board_los[(6,6)]) == set([((5,5), 5), ((7,7), 6)])
-assert set(board_los[(2,2)]) == set([((3,3), 1), ((3,3), 3)])
-assert set(board_los[(7,7)]) == set([(None, 6), ((5,9), 2), ((5,5), 5)])
-assert board_los._cache_sight.get((3,3), None) == {(1,1): (5,5)}
-assert board_los._cache_sight.get((5,5), None) == {(-1,-1): (3,3), (1,1): (7,7), (0,1): (5,9)}
-assert board_los._cache_sight.get((5,9), None) == {(0,-1): (5,5), (1,-1): (7,7)}
 
 #### ================================================================
 #### los_bb (bitboard line of sight calculation)

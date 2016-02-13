@@ -17,6 +17,9 @@ test_other:
 test_rith:
 	PYTHONPATH=$(GAMES_MODULE_DIR):${PYTHONPATH} $(CMD_PYTEST) tests/test_rith.py tests/search/test_rith_search.py # cannot be named test_rith.py otherwise import file mismatch ...
 
+test_rithbb:
+	PYTHONPATH=$(GAMES_MODULE_DIR):${PYTHONPATH} $(CMD_PYTEST) tests/test_rithbb.py
+
 
 
 
@@ -24,7 +27,8 @@ test_rith:
 profile_rith_ab:
 	PYTHONPATH=$(GAMES_MODULE_DIR):${PYTHONPATH} pprofile ./profile/profile_rith_ab.py > $(DATA_DIR)/profile/alphabeta_rith.out
 
-
+profile_rithbb:
+	PYTHONPATH=$(GAMES_MODULE_DIR):${PYTHONPATH} pprofile ./profile/rith/profile_rithbb.py > $(DATA_DIR)/profile/rithbb.out
 
 
 conga_ai_play:

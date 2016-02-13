@@ -198,24 +198,34 @@ class Board(object):
             yield self[key]
 
 
-    def keys_delta_xy(self, coord_src, delta_xy):
+    def keys_delta_xy(self, coord_src, delta_xy, incl_src=True):
         """Yield all coords, starting from src, by successive delta, and stop when OOB"""
         cur_x, cur_y = coord_src
         delta_x, delta_y = delta_xy
 
         coord = (cur_x, cur_y)
-        while self.is_valid_coord(coord):
-            yield coord
-            cur_x += delta_x
-            cur_y += delta_y
-            coord = (cur_x, cur_y)
+        if incl_src:
+            while self.is_valid_coord(coord):
+                yield coord
+                cur_x += delta_x
+                cur_y += delta_y
+                coord = (cur_x, cur_y)
+        else:
+            while True:
+                cur_x += delta_x
+                cur_y += delta_y
+                coord = (cur_x, cur_y)
+                if self.is_valid_coord(coord):
+                    yield coord
+                else:
+                    break
 
 
-    def items_delta_xy(self, coord_src, delta_xy):
-        for key in self.keys_delta_xy(coord_src, delta_xy):
+    def items_delta_xy(self, coord_src, delta_xy, incl_src=True):
+        for key in self.keys_delta_xy(coord_src, delta_xy, incl_src):
             yield key, self._board[key]
 
 
-    def values_delta_xy(self, coord_src, delta_xy):
-        for key in self.keys_delta_xy(coord_src, delta_xy):
+    def values_delta_xy(self, coord_src, delta_xy, incl_src=True):
+        for key in self.keys_delta_xy(coord_src, delta_xy, incl_src):
             yield self._board[key]

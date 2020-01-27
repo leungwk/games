@@ -1,6 +1,6 @@
 GAMES_MODULE_DIR=./games
 DATA_DIR=./data
-CMD_PYTEST=py.test-3.4
+CMD_PYTEST=py.test
 
 # even though py.test says "collected 0 items", they were run
 test: test_conga test_rith test_search test_other
